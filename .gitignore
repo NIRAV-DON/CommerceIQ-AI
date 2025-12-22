@@ -1,16 +1,5 @@
-# Python
+venv/
 __pycache__/
 *.pyc
-*.pyo
-
-# Virtual environment
-venv/
 .env
-
-# Flask
 instance/
-*.sqlite3
-
-# OS
-.DS_Store
-Thumbs.db
