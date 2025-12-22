@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Your Shopping Cart</h1>
+    {% if cart_items %}
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <td>{{ item.product.name }}</td>
+                    <td>₹{{ item.product.price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>₹{{ item.product.price * item.quantity }}</td>
+                    <td>
+                        <a href="{{ url_for('main.remove_from_cart', product_id=item.product.product_id) }}" class="btn" style="background-color: #dc3545; border-color: #dc3545;">Remove</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: bold;">
+                    <td colspan="3" style="text-align: right;">Grand Total:</td>
+                    <td>₹{{ total_price }}</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="text-align: right; margin-top: 2rem;">
+            <a href="{{ url_for('main.checkout') }}" class="btn">Proceed to Checkout</a>
+        </div>
+    {% else %}
+        <p>Your cart is empty.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Admin Dashboard</h1>
+
+    <div class="dashboard-card">
+        <h2>Next 30-Day Sales Forecast</h2>
+        {% if forecast_data and forecast_data.days %}
+            <canvas id="forecastChart" style="max-height: 400px;"></canvas>
+        {% else %}
+            <p>Not enough sales data to generate a forecast. Please make sure there are at least two days of sales.</p>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-card">
+        <h2>Frequently Bought Together</h2>
+        {% if frequent_pairs %}
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Product 1</th>
+                        <th>Product 2</th>
+                        <th>Purchased Together (Times)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pair in frequent_pairs %}
+                        <tr>
+                            <td>{{ pair.Product1 }}</td>
+                            <td>{{ pair.Product2 }}</td>
+                            <td>{{ pair.Frequency }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Not enough order data to show recommendations.</p>
+        {% endif %}
+    </div>
+
+    <!-- Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        {% if forecast_data and forecast_data.days %}
+            const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+            const labels = {{ forecast_data.days | tojson | safe }};
+            const data = {{ forecast_data.predictions | tojson | safe }};
+
+            new Chart(forecastCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Predicted Sales ($)',
+                        data: data,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return '$' + value.toLocaleString(); }
+                            }
+                        }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        {% endif %}
+    </script>
+{% endblock %}
