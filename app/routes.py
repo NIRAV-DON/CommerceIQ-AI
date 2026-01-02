@@ -81,14 +81,18 @@ def product(product_id):
     reviews = Review.query.filter_by(product_id=product.product_id).order_by(Review.created_at.desc()).all()
     return render_template('product_detail.html', title=product.name, product=product, form=form, reviews=reviews)
 
-@main.route("/add_to_cart/<int:product_id>")
+@main.route("/add_to_cart/<int:product_id>", methods=['POST'])
 @login_required
 def add_to_cart(product_id):
+    quantity = int(request.form.get('quantity', 1))
+
     cart = session.get('cart', {})
-    cart[str(product_id)] = cart.get(str(product_id), 0) + 1
+    cart[str(product_id)] = cart.get(str(product_id), 0) + quantity
     session['cart'] = cart
+
     flash('Product added to cart!', 'success')
-    return redirect(request.referrer or url_for('main.home'))
+    return redirect(url_for('main.cart'))
+
 
 @main.route("/cart")
 @login_required

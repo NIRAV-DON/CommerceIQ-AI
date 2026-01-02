@@ -1,32 +1,30 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="product-detail-container">
-    <img src="{{ product.image_url or url_for('static', filename='img/no-image.png') }}" width="300">
+<div class="product-detail">
+    <div class="product-left">
+        <img src="{{ product.image_url or url_for('static', filename='img/no-image.png') }}" alt="{{ product.name }}">
+    </div>
 
-    <h1>{{ product.name }}</h1>
-    <p>{{ product.description }}</p>
-    <h2>₹ {{ product.price }}</h2>
+    <div class="product-right">
+        <h1>{{ product.name }}</h1>
+        <p class="price">₹ {{ product.price }}</p>
+        <p class="desc">{{ product.description }}</p>
 
-    <a href="{{ url_for('main.add_to_cart', product_id=product.product_id) }}" class="btn">
-        Add to Cart
-    </a>
+        <form method="POST" action="{{ url_for('main.add_to_cart', product_id=product.product_id) }}">
+            <label>Quantity</label>
+            <input type="number" name="quantity" value="1" min="1" max="10">
+
+            <button type="submit" class="btn">
+                Add to Cart
+            </button>
+        </form>
+    </div>
 </div>
 
-<hr style="margin:2rem 0;">
+<hr>
 
 <h2>Customer Reviews</h2>
-
-{% if current_user.is_authenticated %}
-<form method="POST">
-    {{ form.hidden_tag() }}
-    {{ form.rating.label }} {{ form.rating() }} <br>
-    {{ form.comment.label }} {{ form.comment() }} <br>
-    {{ form.submit(class="btn") }}
-</form>
-{% else %}
-<p>Please <a href="{{ url_for('main.login') }}">login</a> to write a review.</p>
-{% endif %}
 
 {% if reviews %}
     {% for review in reviews %}
@@ -43,7 +41,6 @@
             {% endif %}
 
             <p>{{ review.comment }}</p>
-            <small>{{ review.created_at.strftime('%Y-%m-%d') }}</small>
         </div>
     {% endfor %}
 {% else %}

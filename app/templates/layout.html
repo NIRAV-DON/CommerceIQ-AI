@@ -6,34 +6,38 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-<nav>
-    <h1><a href="{{ url_for('main.home') }}">CommerceIQ AI</a></h1>
 
+<nav class="navbar">
+    <div class="logo">
+        <a href="{{ url_for('main.home') }}">CommerceIQ AI</a>
+    </div>
+
+    <ul class="nav-links">
+        <li><a href="{{ url_for('main.home') }}">Home</a></li>
+
+        {% if current_user.is_authenticated %}
+            <li>
+                <a href="{{ url_for('main.cart') }}">
+                    Cart
+                    {% if session.get('cart') %}
+                        <span class="cart-count">{{ session['cart']|length }}</span>
+                    {% endif %}
+                </a>
+            </li>
+
+            {% if current_user.role == 'admin' %}
+                <li><a href="{{ url_for('main.admin_dashboard') }}">Admin Dashboard</a></li>
+                <li><a href="{{ url_for('main.add_product') }}">Add Product</a></li>
+            {% endif %}
+
+            <li><a href="{{ url_for('main.logout') }}">Logout</a></li>
+        {% else %}
+            <li><a href="{{ url_for('main.login') }}">Login</a></li>
+            <li><a href="{{ url_for('main.register') }}">Register</a></li>
+        {% endif %}
+    </ul>
 </nav>
 
-<ul class="nav-links">
-    <li><a href="{{ url_for('main.home') }}">Home</a></li>
-
-    {% if current_user.is_authenticated %}
-        <li>
-            <a href="{{ url_for('main.cart') }}">
-                🛒 Cart
-                {% if session.get('cart') %}
-                    ({{ session['cart']|length }})
-                {% endif %}
-            </a>
-        </li>
-
-        {% if current_user.role == 'admin' %}
-            <li><a href="{{ url_for('main.admin_dashboard') }}">Admin</a></li>
-        {% endif %}
-
-        <li><a href="{{ url_for('main.logout') }}">Logout</a></li>
-    {% else %}
-        <li><a href="{{ url_for('main.login') }}">Login</a></li>
-        <li><a href="{{ url_for('main.register') }}">Register</a></li>
-    {% endif %}
-</ul>
 
 
 

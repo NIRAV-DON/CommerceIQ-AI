@@ -1,54 +1,102 @@
-body {
+/* =====================================================
+   GLOBAL RESET & BASE
+   ===================================================== */
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
     font-family: Arial, sans-serif;
-    background: #f5f5f5;
 }
 
+body {
+    background: #f5f5f5;
+    color: #111;
+}
+
+
+/* =====================================================
+   NAVBAR
+   ===================================================== */
 /* NAVBAR */
 .navbar {
-    background: white;
-    padding: 1rem 2rem;
+    background: #ffffff;
+    padding: 1rem 2.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-.logo {
+.logo a {
+    font-size: 1.6rem;
     font-weight: bold;
-    font-size: 1.4rem;
+    color: #2563eb;
+    text-decoration: none;
 }
 
 .nav-links {
     list-style: none;
     display: flex;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 1.8rem;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-links li {
+    display: inline-block;
 }
 
 .nav-links a {
     text-decoration: none;
-    color: #333;
+    color: #1f2937;
+    font-weight: 500;
 }
 
-/* MAIN */
+.nav-links a:hover {
+    color: #2563eb;
+}
+
+/* CART COUNT */
+.cart-count {
+    background: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 50%;
+    margin-left: 4px;
+}
+
+
+/* =====================================================
+   MAIN LAYOUT
+   ===================================================== */
 .main {
     padding: 2rem;
 }
 
-/* FLASH */
-.flash-container {
-    padding: 1rem 2rem;
-}
-
-.flash.success { color: green; }
-.flash.danger { color: red; }
-.flash.info { color: blue; }
 .container {
     max-width: 1200px;
     margin: auto;
     padding: 2rem;
 }
 
+
+/* =====================================================
+   FLASH MESSAGES
+   ===================================================== */
+.flash-container {
+    padding: 1rem 2rem;
+}
+
+.flash.success { color: green; }
+.flash.danger  { color: red; }
+.flash.info    { color: blue; }
+
+
+/* =====================================================
+   HOME – PRODUCT GRID
+   ===================================================== */
 .product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -61,6 +109,11 @@ body {
     border-radius: 12px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
 }
 
 .product-card img {
@@ -71,11 +124,15 @@ body {
 }
 
 .price {
-    color: green;
+    color: #16a34a;
     font-weight: bold;
     margin: 0.5rem 0;
 }
 
+
+/* =====================================================
+   BUTTONS
+   ===================================================== */
 .btn {
     display: inline-block;
     padding: 0.6rem 1.4rem;
@@ -83,18 +140,108 @@ body {
     color: white;
     border-radius: 6px;
     text-decoration: none;
+    cursor: pointer;
 }
+
 .btn:hover {
     background: #1e40af;
 }
-.cart-count {
-    background: #ef4444;
-    color: white;
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: 50%;
-    margin-left: 5px;
+
+
+/* =====================================================
+   PRODUCT DETAIL PAGE
+   ===================================================== */
+.product-detail {
+    display: flex;
+    gap: 3rem;
+    margin-top: 2rem;
 }
+
+.product-left img {
+    width: 380px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.product-right h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.product-right .price {
+    font-size: 1.6rem;
+    color: #16a34a;
+    font-weight: bold;
+}
+
+.product-right .desc {
+    margin: 1rem 0;
+    color: #444;
+}
+
+
+/* =====================================================
+   QUANTITY SELECTOR (AMAZON STYLE BASIC)
+   ===================================================== */
+.quantity-box {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 1rem 0;
+}
+
+.quantity-box input {
+    width: 70px;
+    padding: 0.4rem;
+    text-align: center;
+    font-size: 1rem;
+}
+
+
+/* =====================================================
+   REVIEWS SECTION
+   ===================================================== */
+.reviews-section {
+    margin-top: 3rem;
+}
+
+.review-card {
+    background: #f9fafb;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+
+/* =====================================================
+   SENTIMENT TAGS (AI FEATURE 🔥)
+   ===================================================== */
+.sentiment {
+    padding: 0.2rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-left: 0.5rem;
+}
+
+.sentiment.positive {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.sentiment.negative {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.sentiment.neutral {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
 .footer {
     background: #111827;
     color: white;
@@ -102,19 +249,17 @@ body {
     padding: 1rem 0;
     margin-top: 2rem;
 }
-.product-detail {
-    display: flex;
-    gap: 2rem;
-}
 
-.product-detail img {
-    width: 400px;
-    border-radius: 12px;
-}
 
-.product-info {
-    max-width: 500px;
-}
-.product-info h2 {
-    margin-top: 0;
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+@media (max-width: 768px) {
+    .product-detail {
+        flex-direction: column;
+    }
+
+    .product-left img {
+        width: 100%;
+    }
 }
