@@ -1,15 +1,28 @@
 {% extends "layout.html" %}
+
 {% block content %}
+<div class="container">
+    <h2>Our Products</h2>
 
-<h1>Our Products</h1>
+    <div class="product-grid">
+        {% for product in products %}
+        <div class="product-card">
 
-<ul>
-{% for product in products %}
-    <li>
-        {{ product.name }} – ₹{{ product.price }}
-        <a href="{{ url_for('main.add_to_cart', product_id=product.product_id) }}">Add to Cart</a>
-    </li>
-{% endfor %}
-</ul>
+            <img 
+              src="{{ product.image_url if product.image_url else url_for('static', filename='img/no-image.png') }}" 
+              alt="{{ product.name }}"
+            >
 
+            <h3>{{ product.name }}</h3>
+
+            <p class="price">₹{{ product.price }}</p>
+
+            <a href="{{ url_for('main.add_to_cart', product_id=product.product_id) }}" class="btn">
+                Add to Cart
+            </a>
+
+        </div>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}
