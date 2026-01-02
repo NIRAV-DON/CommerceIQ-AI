@@ -1,28 +1,30 @@
 {% extends "layout.html" %}
-
 {% block content %}
-<div class="container">
-    <h2>Our Products</h2>
 
-    <div class="product-grid">
-        {% for product in products %}
-        <div class="product-card">
+<h2 class="page-title">Our Products</h2>
 
-            <img 
-              src="{{ product.image_url if product.image_url else url_for('static', filename='img/no-image.png') }}" 
-              alt="{{ product.name }}"
-            >
+<div class="product-grid">
+    {% for product in products %}
+    <div class="product-card">
 
-            <h3>{{ product.name }}</h3>
+        <a href="{{ url_for('main.product', product_id=product.product_id) }}">
+            <img src="{{ product.image_url or url_for('static', filename='img/no-image.png') }}">
+        </a>
 
-            <p class="price">₹{{ product.price }}</p>
-
-            <a href="{{ url_for('main.add_to_cart', product_id=product.product_id) }}" class="btn">
-                Add to Cart
+        <h3>
+            <a href="{{ url_for('main.product', product_id=product.product_id) }}">
+                {{ product.name }}
             </a>
+        </h3>
 
-        </div>
-        {% endfor %}
+        <p class="price">₹{{ product.price }}</p>
+
+        <a href="{{ url_for('main.product', product_id=product.product_id) }}" class="btn">
+            View Details
+        </a>
+
     </div>
+    {% endfor %}
 </div>
+
 {% endblock %}
