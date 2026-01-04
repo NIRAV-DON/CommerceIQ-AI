@@ -70,22 +70,18 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember.data)
 
-            # 🔑 ROLE BASED REDIRECT
+            # ✅ ROLE BASED REDIRECT
             if user.role == 'admin':
                 return redirect(url_for('main.admin_dashboard'))
             else:
                 return redirect(url_for('main.home'))
-
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
 
     return render_template('login.html', title='Login', form=form)
-
-
 
 
 @main.route("/logout")
@@ -177,9 +173,53 @@ def checkout():
 @login_required
 @admin_required
 def admin_dashboard():
-    forecast_data = forecasting.get_sales_forecast()
-    frequent_pairs = recommendations.get_frequent_pairs()
-    return render_template('admin_dashboard.html', title='Admin Dashboard', forecast_data=forecast_data, frequent_pairs=frequent_pairs)
+    total_products = Product.query.count()
+    total_orders = Order.query.count()
+    total_users = User.query.count()
+
+    total_sales = db.session.query(
+        db.func.sum(Order.total_amount)
+    ).scalar() or 0
+
+    low_stock_products = Product.query.filter(
+        Product.stock_quantity <= 5
+    ).count()
+
+    # ✅ AI FORECAST DATA (IMPORTANT)
+    forecast_data = forecasting.get_sales_forecast() or []
+
+    return render_template(
+        'admin_dashboard.html',
+        total_products=total_products,
+        total_orders=total_orders,
+        total_users=total_users,
+        total_sales=total_sales,
+        low_stock_products=low_stock_products,
+        forecast_data=forecast_data   # 🔑 THIS WAS MISSING
+    )
+forecast_data = [
+    {"date": "Day 1", "predicted_sales": 10},
+    {"date": "Day 2", "predicted_sales": 15},
+    {"date": "Day 3", "predicted_sales": 8},
+    {"date": "Day 4", "predicted_sales": 20},
+    {"date": "Day 5", "predicted_sales": 12},
+]
+@login_required
+def admin_dashboard():
+
+    forecast_data = [
+        {"date": "Day 1", "predicted_sales": 10},
+        {"date": "Day 2", "predicted_sales": 15},
+        {"date": "Day 3", "predicted_sales": 8},
+        {"date": "Day 4", "predicted_sales": 20},
+    ]
+
+    return render_template(
+        "admin_dashboard.html",
+        forecast_data=forecast_data
+    )
+
+
 
 @main.route("/admin/product/new", methods=['GET', 'POST'])
 @login_required
