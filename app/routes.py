@@ -19,6 +19,18 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@main.route("/dashboard")
+@login_required
+def dashboard():
+    total_products = Product.query.count()
+    cart_count = len(session.get('cart', {}))
+
+    return render_template(
+        "dashboard.html",
+        total_products=total_products,
+        cart_count=cart_count
+    )
+
 @main.route("/")
 @main.route("/home")
 def home():
@@ -51,17 +63,30 @@ def register():
 @main.route("/login", methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
+        if current_user.role == 'admin':
+            return redirect(url_for('main.admin_dashboard'))
         return redirect(url_for('main.home'))
+
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
+
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember.data)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('main.home'))
+
+            # 🔑 ROLE BASED REDIRECT
+            if user.role == 'admin':
+                return redirect(url_for('main.admin_dashboard'))
+            else:
+                return redirect(url_for('main.home'))
+
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
+
     return render_template('login.html', title='Login', form=form)
+
+
+
 
 @main.route("/logout")
 def logout():

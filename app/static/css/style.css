@@ -25,6 +25,7 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
 }
 
 .logo a {
@@ -41,6 +42,7 @@ body {
     gap: 1.8rem;
     margin: 0;
     padding: 0;
+    flex-wrap: wrap;
 }
 
 .nav-links li {
@@ -262,4 +264,23 @@ body {
     .product-left img {
         width: 100%;
     }
+}
+/* =====================================================
+   DASHBOARD ADMIN PANEL
+   ===================================================== */
+   .dashboard {
+    display: flex;
+    gap: 2rem;
+}
+
+.sidebar {
+    width: 220px;
+}
+
+.category-card {
+    padding: 1.5rem;
+    background: #f9fafb;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    cursor: pointer;
 }
