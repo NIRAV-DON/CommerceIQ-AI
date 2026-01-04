@@ -1,46 +1,46 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-from datetime import datetime, timedelta
-from .. import db
-from ..models import Order
+from app.models import Order
+from app import db
+from datetime import timedelta
 
-def get_sales_forecast():
-    try:
-        # Database mathi badha orders fetch karo
-        orders = Order.query.all()
-        if len(orders) < 2:
-            return None # Aagahi mate ochhama ochho 2 divas no data joiye
+def get_sales_forecast(days=5):
+    # 1️⃣ DB mathi sales data
+    orders = db.session.query(
+        Order.order_date,
+        Order.total_amount
+    ).all()
 
-        # DataFrame banavo
-        data = [{'date': order.order_date.date(), 'sales': float(order.total_amount)} for order in orders]
-        df = pd.DataFrame(data)
-        
-        # Date pramane sales ne group karo
-        daily_sales = df.groupby('date')['sales'].sum().reset_index()
-        
-        if len(daily_sales) < 2:
-            return None
+    if not orders:
+        return []
 
-        # Model mate data taiyar karo
-        daily_sales['day_num'] = (daily_sales['date'] - daily_sales['date'].min()).dt.days
-        
-        X = daily_sales[['day_num']]
-        y = daily_sales['sales']
+    # 2️⃣ DataFrame banavo
+    df = pd.DataFrame(orders, columns=["date", "sales"])
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.groupby(df["date"].dt.date).sum().reset_index()
 
-        # Linear Regression model ne train karo
-        model = LinearRegression()
-        model.fit(X, y)
+    # 3️⃣ Date → number (ML mate)
+    df["day"] = range(len(df))
 
-        # Aavta 30 divas mate aagahi karo
-        last_day_num = X['day_num'].max()
-        future_days = pd.DataFrame({'day_num': range(last_day_num + 1, last_day_num + 31)})
-        predictions = model.predict(future_days)
+    X = df[["day"]]
+    y = df["sales"]
 
-        # Result taiyar karo
-        last_date = daily_sales['date'].max()
-        future_dates = [(last_date + timedelta(days=i)).strftime('%b %d') for i in range(1, 31)]
+    # 4️⃣ Train model
+    model = LinearRegression()
+    model.fit(X, y)
 
-        return {'days': future_dates, 'predictions': [round(p, 2) for p in predictions]}
-    except Exception as e:
-        print(f"Error in forecasting: {e}")
-        return None
+    # 5️⃣ Future days predict
+    future_days = [[len(df) + i] for i in range(days)]
+    predictions = model.predict(future_days)
+
+    # 6️⃣ Chart mate format
+    forecast = []
+    last_date = df["date"].iloc[-1]
+
+    for i, value in enumerate(predictions):
+        forecast.append({
+            "date": str(last_date + timedelta(days=i + 1)),
+            "predicted_sales": round(float(value), 2)
+        })
+
+    return forecast

@@ -20,7 +20,12 @@
         <div class="admin-card">
             <h3>Total Users</h3>
             <p>{{ total_users }}</p>
+          <a href="{{ url_for('main.admin_users') }}" class="dashboard-card">
+    <h3>Total Users</h3>
+    <p>{{ total_users }}</p>
+</a>
         </div>
+
 
         <div class="admin-card">
             <h3>Total Sales</h3>
@@ -31,6 +36,8 @@
             <h3>Low Stock Products</h3>
             <p>{{ low_stock_products }}</p>
         </div>
+        
+
 
     </div>
 
@@ -43,25 +50,65 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const forecastData = JSON.parse('{{ forecast_data | default([]) | tojson | safe }}');
+const forecastData = {{ forecast_data | tojson | safe }};
 
-    const labels = forecastData.map(item => item.date);
-    const values = forecastData.map(item => item.predicted_sales);
+const labels = forecastData.map(item => item.date);
+const values = forecastData.map(item => item.predicted_sales);
 
-    new Chart(document.getElementById('salesChart'), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Predicted Sales',
-                data: values,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37,99,235,0.2)',
-                tension: 0.4
-            }]
+const ctx = document.getElementById('salesChart').getContext('2d');
+
+/* Gradient */
+const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+gradient.addColorStop(0, 'rgba(37, 99, 235, 0.5)');
+gradient.addColorStop(1, 'rgba(37, 99, 235, 0.05)');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Predicted Sales',
+            data: values,
+            fill: true,
+            backgroundColor: gradient,
+            borderColor: '#2563eb',
+            borderWidth: 3,
+            tension: 0.4,   // 👈 smooth curve
+            pointRadius: 5,
+            pointBackgroundColor: '#1e40af'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: {
+                    font: { size: 14 }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return ' ₹ ' + context.raw;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false }
+            },
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: '#e5e7eb'
+                }
+            }
         }
-    });
+    }
+});
 </script>
+
 
 
 {% endblock %}

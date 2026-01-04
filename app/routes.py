@@ -173,6 +173,7 @@ def checkout():
 @login_required
 @admin_required
 def admin_dashboard():
+
     total_products = Product.query.count()
     total_orders = Order.query.count()
     total_users = User.query.count()
@@ -185,39 +186,25 @@ def admin_dashboard():
         Product.stock_quantity <= 5
     ).count()
 
-    # ✅ AI FORECAST DATA (IMPORTANT)
-    forecast_data = forecasting.get_sales_forecast() or []
-
-    return render_template(
-        'admin_dashboard.html',
-        total_products=total_products,
-        total_orders=total_orders,
-        total_users=total_users,
-        total_sales=total_sales,
-        low_stock_products=low_stock_products,
-        forecast_data=forecast_data   # 🔑 THIS WAS MISSING
-    )
-forecast_data = [
-    {"date": "Day 1", "predicted_sales": 10},
-    {"date": "Day 2", "predicted_sales": 15},
-    {"date": "Day 3", "predicted_sales": 8},
-    {"date": "Day 4", "predicted_sales": 20},
-    {"date": "Day 5", "predicted_sales": 12},
-]
-@login_required
-def admin_dashboard():
-
+    # ✅ TEMP DUMMY AI DATA (SAFE)
     forecast_data = [
         {"date": "Day 1", "predicted_sales": 10},
         {"date": "Day 2", "predicted_sales": 15},
         {"date": "Day 3", "predicted_sales": 8},
         {"date": "Day 4", "predicted_sales": 20},
+        {"date": "Day 5", "predicted_sales": 12},
     ]
 
     return render_template(
         "admin_dashboard.html",
+        total_products=total_products,
+        total_orders=total_orders,
+        total_users=total_users,
+        total_sales=total_sales,
+        low_stock_products=low_stock_products,
         forecast_data=forecast_data
     )
+
 
 
 
@@ -233,4 +220,15 @@ def add_product():
         flash('The product has been added!', 'success')
         return redirect(url_for('main.home'))
     return render_template('add_product.html', title='Add Product', form=form)
+
+@main.route("/admin/users")
+@login_required
+@admin_required
+def admin_users():
+    users = User.query.all()
+    return render_template(
+        "admin_users.html",
+        users=users
+    )
+
 
