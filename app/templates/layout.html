@@ -12,30 +12,50 @@
         <a href="{{ url_for('main.home') }}">CommerceIQ AI</a>
     </div>
 
-    <ul class="nav-links">
-        <li><a href="{{ url_for('main.home') }}">Home</a></li>
+   <ul class="nav-links">
+    <li><a href="{{ url_for('main.home') }}">Home</a></li>
 
-        {% if current_user.is_authenticated %}
+    {% if current_user.is_authenticated %}
+
+        {% if current_user.role == 'admin' %}
+            <li><a href="{{ url_for('main.admin_dashboard') }}">Admin Dashboard</a></li>
+            <li><a href="{{ url_for('main.add_product') }}">Add Product</a></li>
+        {% else %}
+            <!-- CUSTOMER OPTIONS -->
             <li>
                 <a href="{{ url_for('main.cart') }}">
-                    Cart
+                    🛒 Cart
                     {% if session.get('cart') %}
                         <span class="cart-count">{{ session['cart']|length }}</span>
                     {% endif %}
                 </a>
             </li>
+            <li><a href="{{ url_for('main.profile') }}">My Profile</a></li>
+            <li><a href="{{ url_for('main.cart') }}">My Orders</a></li>
 
-            {% if current_user.role == 'admin' %}
-                <li><a href="{{ url_for('main.admin_dashboard') }}">Admin Dashboard</a></li>
-                <li><a href="{{ url_for('main.add_product') }}">Add Product</a></li>
-            {% endif %}
-
-            <li><a href="{{ url_for('main.logout') }}">Logout</a></li>
-        {% else %}
-            <li><a href="{{ url_for('main.login') }}">Login</a></li>
-            <li><a href="{{ url_for('main.register') }}">Register</a></li>
         {% endif %}
-    </ul>
+
+       <li class="profile-dropdown">
+    <span class="profile-btn">
+        👤 {{ current_user.username }} ▾
+    </span>
+
+    <ul class="dropdown-menu">
+    <li><a href="{{ url_for('main.profile') }}">My Profile</a></li>
+    <li><a href="{{ url_for('main.cart') }}">My Orders</a></li>
+    <li><a href="{{ url_for('main.logout') }}">Logout</a></li>
+</ul>
+
+</li>
+
+    {% else %}
+        <li><a href="{{ url_for('main.login') }}">Login</a></li>
+        <li><a href="{{ url_for('main.register') }}">Register</a></li>
+    {% endif %}
+</ul>
+
+
+
 </nav>
 
 

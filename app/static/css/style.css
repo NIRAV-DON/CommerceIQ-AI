@@ -364,4 +364,88 @@ body {
     box-shadow: 0 10px 25px rgba(0,0,0,0.08);
     margin-top: 2rem;
 }
+.user-badge {
+    background: #2563eb;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+.cart-count {
+    background: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 50%;
+    margin-left: 5px;
+}
+
+
+/* =====================================================
+   PROFILE DROPDOWN
+   ===================================================== */
+/* PROFILE DROPDOWN */
+.profile-dropdown {
+    position: relative;
+    cursor: pointer;
+}
+
+.profile-btn {
+    background: #2563eb;
+    color: white;
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background: white;
+    list-style: none;
+    padding: 0.5rem 0;
+    border-radius: 10px;
+    min-width: 170px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 1000;
+}
+
+.dropdown-menu li {
+    padding: 0.6rem 1rem;
+}
+
+.dropdown-menu li a {
+    text-decoration: none;
+    color: #111;
+    display: block;
+}
+
+.dropdown-menu li:hover {
+    background: #f1f5f9;
+}
+
+/* SHOW ON HOVER */
+.profile-dropdown:hover .dropdown-menu {
+    display: block;
+}
+.profile-container {
+    max-width: 600px;
+    margin: 3rem auto;
+}
+
+.profile-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+}
+
+.profile-card p {
+    font-size: 1.05rem;
+    margin-bottom: 0.7rem;
+}
 

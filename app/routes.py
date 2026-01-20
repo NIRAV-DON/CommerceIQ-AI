@@ -229,6 +229,40 @@ def admin_users():
     return render_template(
         "admin_users.html",
         users=users
+    )@main.route("/profile")
+@login_required
+def profile():
+    user = current_user
+
+    total_orders = Order.query.filter_by(user_id=user.user_id).count()
+
+    total_spent = db.session.query(
+        db.func.sum(Order.total_amount)
+    ).filter_by(user_id=user.user_id).scalar() or 0
+
+    return render_template(
+        "profile.html",
+        user=user,
+        total_orders=total_orders,
+        total_spent=total_spent
+    )
+
+@main.route("/profile")
+@login_required
+def profile():
+    user = current_user
+
+    total_orders = Order.query.filter_by(user_id=user.user_id).count()
+
+    total_spent = db.session.query(
+        db.func.sum(Order.total_amount)
+    ).filter_by(user_id=user.user_id).scalar() or 0
+
+    return render_template(
+        "profile.html",
+        user=user,
+        total_orders=total_orders,
+        total_spent=total_spent
     )
 
 
