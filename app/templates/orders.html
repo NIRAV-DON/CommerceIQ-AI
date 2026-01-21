@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+    <h1 style="margin-bottom: 1.5rem;">My Orders</h1>
+
+    {% if orders %}
+        {% for order in orders %}
+            <div class="order-card">
+                <div class="order-row">
+                    <strong>Order ID:</strong> #{{ order.order_id }}
+                </div>
+
+                <div class="order-row">
+                    <strong>Date:</strong>
+                    {{ order.order_date.strftime('%d %b %Y') }}
+                </div>
+
+                <div class="order-row">
+                    <strong>Total Amount:</strong>
+                    ₹{{ order.total_amount }}
+                </div>
+
+                <div class="order-row">
+                    <strong>Status:</strong>
+                    <span class="status {{ order.status|lower }}">
+                        {{ order.status }}
+                    </span>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>You have not placed any orders yet.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

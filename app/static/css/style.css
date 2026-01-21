@@ -85,6 +85,34 @@ body {
     background: #2563eb;
     color: white;
 }
+.order-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+}
+
+.order-row {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.status {
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.status.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status.completed {
+    background: #dcfce7;
+    color: #166534;
+}
 
 
 /* =====================================================
@@ -447,5 +475,179 @@ body {
 .profile-card p {
     font-size: 1.05rem;
     margin-bottom: 0.7rem;
+}
+/* =====================================================
+   CUSTOMER DASHBOARD
+   ===================================================== */
+.dashboard-container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 2rem;
+}
+
+.dashboard-welcome {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: white;
+    padding: 2rem;
+    border-radius: 14px;
+    margin-bottom: 2rem;
+}
+
+.dashboard-welcome h2 {
+    margin: 0;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stat-card h3 {
+    margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.section-title {
+    margin-bottom: 1rem;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.2rem;
+}
+
+.category-card {
+    background: #f1f5f9;
+    padding: 1.4rem;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: bold;
+    text-decoration: none;
+    color: #111827;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    background: #2563eb;
+    color: white;
+    transform: translateY(-4px);
+}
+/* =====================================================
+   PROFILE PAGE
+   ===================================================== */
+.profile-container {
+    max-width: 900px;
+    margin: auto;
+    padding: 2rem;
+}
+
+.profile-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.profile-card h2 {
+    margin-bottom: 1rem;
+}
+
+.profile-info p {
+    font-size: 1.05rem;
+    margin: 0.4rem 0;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.category-list {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.category-card {
+    padding: 1rem 2rem;
+    background: #f3f4f6;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: bold;
+    color: #111;
+    transition: 0.3s;
+}
+
+.category-card:hover {
+    background: #2563eb;
+    color: white;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.dash-card {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.dash-card h3 {
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.dash-card p {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.dash-card.warning p {
+    color: #dc2626;
+}
+
+.chart-box {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+table a {
+    position: relative;
+    z-index: 5;
+    pointer-events: auto;
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+table {
+    position: relative;
+    z-index: 1;
 }
 

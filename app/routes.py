@@ -4,12 +4,11 @@ from .forms import RegistrationForm, LoginForm, ProductForm, ReviewForm
 from .models import User, Product, Order, OrderItem, Review
 from flask_login import login_user, current_user, logout_user, login_required
 from functools import wraps
-from .ai_engine import forecasting, recommendations
 
-# Create a Blueprint object
+# Blueprint
 main = Blueprint('main', __name__)
 
-# Admin required decorator
+# -------------------- ADMIN DECORATOR --------------------
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -19,161 +18,246 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@main.route("/dashboard")
-@login_required
-def dashboard():
-    total_products = Product.query.count()
-    cart_count = len(session.get('cart', {}))
-
-    return render_template(
-        "dashboard.html",
-        total_products=total_products,
-        cart_count=cart_count
-    )
-
+# -------------------- HOME --------------------
 @main.route("/")
 @main.route("/home")
 def home():
+    category = request.args.get('category')
     query = request.args.get('query')
+
+    products = Product.query
+
+    if category:
+        products = products.filter_by(category=category)
+
     if query:
-        products = Product.query.filter(Product.name.contains(query)).all()
-    else:
-        products = Product.query.all()
-    return render_template('home.html', products=products)
+        products = products.filter(Product.name.contains(query))
 
-@main.route("/search", methods=['POST'])
+    products = products.all()
+
+    return render_template(
+        'home.html',
+        products=products,
+        selected_category=category
+    )
+
+
+# -------------------- SEARCH --------------------
+@main.route("/search", methods=["POST"])
 def search():
-    query = request.form.get('search_query')
-    return redirect(url_for('main.home', query=query))
+    query = request.form.get("search_query")
+    return redirect(url_for("main.home", query=query))
 
-@main.route("/register", methods=['GET', 'POST'])
+# -------------------- REGISTER --------------------
+@main.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('main.home'))
+        return redirect(url_for("main.home"))
+
     form = RegistrationForm()
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(username=form.username.data, email=form.email.data, password_hash=hashed_password)
+        hashed_password = bcrypt.generate_password_hash(
+            form.password.data
+        ).decode("utf-8")
+
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            password_hash=hashed_password,
+            role="customer"
+        )
         db.session.add(user)
         db.session.commit()
-        flash('Your account has been created! You are now able to log in', 'success')
-        return redirect(url_for('main.login'))
-    return render_template('register.html', title='Register', form=form)
 
-@main.route("/login", methods=['GET', 'POST'])
+        flash("Account created successfully!", "success")
+        return redirect(url_for("main.login"))
+
+    return render_template("register.html", form=form)
+
+# -------------------- LOGIN --------------------
+@main.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        if current_user.role == 'admin':
-            return redirect(url_for('main.admin_dashboard'))
-        return redirect(url_for('main.home'))
+        if current_user.role == "admin":
+            return redirect(url_for("main.admin_dashboard"))
+        return redirect(url_for("main.home"))
 
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
+
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember.data)
 
-            # ✅ ROLE BASED REDIRECT
-            if user.role == 'admin':
-                return redirect(url_for('main.admin_dashboard'))
+            if user.role == "admin":
+                return redirect(url_for("main.admin_dashboard"))
             else:
-                return redirect(url_for('main.home'))
-        else:
-            flash('Login Unsuccessful. Please check email and password', 'danger')
+                return redirect(url_for("main.home"))
 
-    return render_template('login.html', title='Login', form=form)
+        flash("Login failed. Check email or password.", "danger")
 
+    return render_template("login.html", form=form)
 
+# -------------------- LOGOUT --------------------
 @main.route("/logout")
+@login_required
 def logout():
     logout_user()
-    return redirect(url_for('main.home'))
+    return redirect(url_for("main.home"))
 
-@main.route("/product/<int:product_id>", methods=['GET', 'POST'])
-def product(product_id):
+# -------------------- CUSTOMER DASHBOARD --------------------
+@main.route("/dashboard")
+@login_required
+def dashboard():
+    cart_count = len(session.get("cart", {}))
+    total_products = Product.query.count()
+    return render_template(
+        "dashboard.html",
+        cart_count=cart_count,
+        total_products=total_products
+    )
+
+# -------------------- PRODUCT DETAIL --------------------
+@main.route("/product/<int:product_id>", methods=["GET", "POST"])
+def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     form = ReviewForm()
+
     if form.validate_on_submit():
-        review = Review(rating=form.rating.data, comment=form.comment.data, author=current_user, product=product)
+        review = Review(
+            rating=form.rating.data,
+            comment=form.comment.data,
+            author=current_user,
+            product=product
+        )
         db.session.add(review)
         db.session.commit()
-        flash('Your review has been submitted!', 'success')
-        return redirect(url_for('main.product', product_id=product.product_id))
-    reviews = Review.query.filter_by(product_id=product.product_id).order_by(Review.created_at.desc()).all()
-    return render_template('product_detail.html', title=product.name, product=product, form=form, reviews=reviews)
+        flash("Review added!", "success")
+        return redirect(url_for("main.product_detail", product_id=product_id))
 
-@main.route("/add_to_cart/<int:product_id>", methods=['POST'])
+    reviews = Review.query.filter_by(
+        product_id=product_id
+    ).order_by(Review.created_at.desc()).all()
+
+    return render_template(
+        "product_detail.html",
+        product=product,
+        form=form,
+        reviews=reviews
+    )
+
+# -------------------- CART --------------------
+@main.route("/add_to_cart/<int:product_id>", methods=["POST"])
 @login_required
 def add_to_cart(product_id):
-    quantity = int(request.form.get('quantity', 1))
+    quantity = int(request.form.get("quantity", 1))
+    cart = session.get("cart", {})
 
-    cart = session.get('cart', {})
     cart[str(product_id)] = cart.get(str(product_id), 0) + quantity
-    session['cart'] = cart
+    session["cart"] = cart
 
-    flash('Product added to cart!', 'success')
-    return redirect(url_for('main.cart'))
+    flash("Product added to cart!", "success")
+    return redirect(url_for("main.cart"))
+@main.route("/orders")
+@login_required
+def orders():
+    user_orders = Order.query.filter_by(
+        user_id=current_user.user_id
+    ).order_by(Order.order_date.desc()).all()
+
+    return render_template(
+        "orders.html",
+        orders=user_orders
+    )
 
 
 @main.route("/cart")
 @login_required
 def cart():
-    cart_session = session.get('cart', {})
+    cart_session = session.get("cart", {})
     cart_items = []
     total_price = 0
-    for product_id, quantity in cart_session.items():
-        product = Product.query.get(product_id)
+
+    for pid, qty in cart_session.items():
+        product = Product.query.get(int(pid))
         if product:
-            item_total = product.price * quantity
+            item_total = product.price * qty
             total_price += item_total
-            cart_items.append({'product': product, 'quantity': quantity, 'item_total': item_total})
-    return render_template('cart.html', title='Shopping Cart', cart_items=cart_items, total_price=total_price)
+            cart_items.append({
+                "product": product,
+                "quantity": qty,
+                "item_total": item_total
+            })
+
+    return render_template(
+        "cart.html",
+        cart_items=cart_items,
+        total_price=total_price
+    )
 
 @main.route("/remove_from_cart/<int:product_id>")
 @login_required
 def remove_from_cart(product_id):
-    cart = session.get('cart', {})
-    if str(product_id) in cart:
-        del cart[str(product_id)]
-        session['cart'] = cart
-        flash('Product removed from cart.', 'success')
-    return redirect(url_for('main.cart'))
+    cart = session.get("cart", {})
+    cart.pop(str(product_id), None)
+    session["cart"] = cart
+    flash("Product removed.", "info")
+    return redirect(url_for("main.cart"))
 
+# -------------------- CHECKOUT --------------------
 @main.route("/checkout", methods=['GET', 'POST'])
 @login_required
 def checkout():
-    # Checkout logic goes here
-    # For now, let's just clear the cart and redirect
     cart = session.get('cart', {})
+
     if not cart:
         flash('Your cart is empty.', 'info')
         return redirect(url_for('main.home'))
-    
-    # Create order
+
     total_price = 0
-    order_items = []
+
+    # 1️⃣ Create ORDER FIRST
+    order = Order(
+        user_id=current_user.user_id,
+        total_amount=0,
+        shipping_address="123 Example St, City, Country"
+    )
+    db.session.add(order)
+    db.session.commit()   # 🔴 VERY IMPORTANT
+
+    # 2️⃣ Create ORDER ITEMS
     for product_id, quantity in cart.items():
         product = Product.query.get(product_id)
         if product:
-            total_price += product.price * quantity
-            order_items.append(OrderItem(product_id=product_id, quantity=quantity, price_per_unit=product.price))
-    
-    # Assuming a static shipping address for simplicity
-    order = Order(user_id=current_user.user_id, total_amount=total_price, shipping_address="123 Example St, City, Country", items=order_items)
-    db.session.add(order)
+            item_total = product.price * quantity
+            total_price += item_total
+
+            order_item = OrderItem(
+                order_id=order.order_id,   # 🔥 KEY FIX
+                product_id=product.product_id,
+                quantity=quantity,
+                price_per_unit=product.price
+            )
+            db.session.add(order_item)
+
+    # 3️⃣ Update total price
+    order.total_amount = total_price
     db.session.commit()
 
-    session.pop('cart', None) # Clear the cart
+    # 4️⃣ Clear cart
+    session.pop('cart', None)
+
     flash('Your order has been placed successfully!', 'success')
-    return redirect(url_for('main.home'))
+    return redirect(url_for('main.orders'))
 
 
-# --- ADMIN ROUTES ---
+# ==================== ADMIN ROUTES ====================
+
+# -------------------- ADMIN DASHBOARD --------------------
 @main.route("/admin/dashboard")
 @login_required
 @admin_required
 def admin_dashboard():
-
     total_products = Product.query.count()
     total_orders = Order.query.count()
     total_users = User.query.count()
@@ -186,13 +270,11 @@ def admin_dashboard():
         Product.stock_quantity <= 5
     ).count()
 
-    # ✅ TEMP DUMMY AI DATA (SAFE)
     forecast_data = [
         {"date": "Day 1", "predicted_sales": 10},
         {"date": "Day 2", "predicted_sales": 15},
         {"date": "Day 3", "predicted_sales": 8},
         {"date": "Day 4", "predicted_sales": 20},
-        {"date": "Day 5", "predicted_sales": 12},
     ]
 
     return render_template(
@@ -205,55 +287,66 @@ def admin_dashboard():
         forecast_data=forecast_data
     )
 
-
-
-
-@main.route("/admin/product/new", methods=['GET', 'POST'])
+# -------------------- ADD PRODUCT --------------------
+@main.route("/admin/product/new", methods=["GET", "POST"])
 @login_required
 @admin_required
 def add_product():
     form = ProductForm()
     if form.validate_on_submit():
-        product = Product(name=form.name.data, description=form.description.data, price=form.price.data, stock_quantity=form.stock_quantity.data, category=form.category.data, image_url=form.image_url.data)
+        product = Product(
+            name=form.name.data,
+            description=form.description.data,
+            price=form.price.data,
+            stock_quantity=form.stock_quantity.data,
+            category=form.category.data,
+            image_url=form.image_url.data
+        )
         db.session.add(product)
         db.session.commit()
-        flash('The product has been added!', 'success')
-        return redirect(url_for('main.home'))
-    return render_template('add_product.html', title='Add Product', form=form)
+        flash("Product added!", "success")
+        return redirect(url_for("main.admin_dashboard"))
 
+    return render_template("add_product.html", form=form)
+
+# -------------------- ADMIN USERS --------------------
 @main.route("/admin/users")
 @login_required
 @admin_required
 def admin_users():
     users = User.query.all()
-    return render_template(
-        "admin_users.html",
-        users=users
-    )@main.route("/profile")
+    return render_template("admin_users.html", users=users)
+@main.route("/admin/user/<int:user_id>")
 @login_required
-def profile():
-    user = current_user
+@admin_required
+def admin_user_detail(user_id):
+    user = User.query.get_or_404(user_id)
 
-    total_orders = Order.query.filter_by(user_id=user.user_id).count()
+    orders = Order.query.filter_by(user_id=user.user_id)\
+        .order_by(Order.order_date.desc()).all()
+
+    total_orders = len(orders)
 
     total_spent = db.session.query(
         db.func.sum(Order.total_amount)
     ).filter_by(user_id=user.user_id).scalar() or 0
 
     return render_template(
-        "profile.html",
+        "admin_user_detail.html",
         user=user,
+        orders=orders,
         total_orders=total_orders,
         total_spent=total_spent
     )
 
+
+# -------------------- PROFILE --------------------
 @main.route("/profile")
 @login_required
 def profile():
     user = current_user
 
     total_orders = Order.query.filter_by(user_id=user.user_id).count()
-
     total_spent = db.session.query(
         db.func.sum(Order.total_amount)
     ).filter_by(user_id=user.user_id).scalar() or 0
@@ -264,5 +357,3 @@ def profile():
         total_orders=total_orders,
         total_spent=total_spent
     )
-
-

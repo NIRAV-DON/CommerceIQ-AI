@@ -14,12 +14,30 @@
         <h2>Shop by Category</h2>
 
         <div class="category-grid">
-            <div class="category-card">📱 Mobiles</div>
-            <div class="category-card">💻 Laptops</div>
-            <div class="category-card">🎧 Accessories</div>
-            <div class="category-card">⌚ Wearables</div>
+            <a href="{{ url_for('main.home', category='Mobiles') }}" class="category-card">
+                📱 Mobiles
+            </a>
+
+            <a href="{{ url_for('main.home', category='Laptops') }}" class="category-card">
+                💻 Laptops
+            </a>
+
+            <a href="{{ url_for('main.home', category='Accessories') }}" class="category-card">
+                🎧 Accessories
+            </a>
+
+            <a href="{{ url_for('main.home', category='Wearables') }}" class="category-card">
+                ⌚ Wearables
+            </a>
         </div>
     </section>
+
+    <!-- SELECTED CATEGORY TITLE -->
+    {% if selected_category %}
+        <h2 style="margin: 1.5rem 0;">
+            Showing Category: {{ selected_category }}
+        </h2>
+    {% endif %}
 
     <!-- PRODUCTS -->
     <section class="products-section">
@@ -27,19 +45,22 @@
 
         <div class="product-grid">
             {% for product in products %}
-            <div class="product-card">
-                <img src="{{ product.image_url }}" alt="{{ product.name }}">
-                <h3>{{ product.name }}</h3>
-                <p class="price">₹{{ product.price }}</p>
-                <a href="{{ url_for('main.product', product_id=product.product_id) }}" class="btn">
-                    View Details
-                </a>
-            </div>
+                <div class="product-card">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                    <h3>{{ product.name }}</h3>
+                    <p class="price">₹{{ product.price }}</p>
+
+                    <!-- 🔴 IMPORTANT FIX -->
+                    <a href="{{ url_for('main.product_detail', product_id=product.product_id) }}" class="btn">
+                        View Details
+                    </a>
+                </div>
+            {% else %}
+                <p>No products found.</p>
             {% endfor %}
         </div>
     </section>
 
 </div>
-
 
 {% endblock %}

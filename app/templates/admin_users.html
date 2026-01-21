@@ -14,7 +14,13 @@
 
         {% for user in users %}
         <tr>
-            <td>{{ user.username }}</td>
+            <!-- 🔥 USERNAME CLICKABLE -->
+            <td>
+                <a href="{{ url_for('main.admin_user_detail', user_id=user.user_id) }}">
+                    {{ user.username }}
+                </a>
+            </td>
+
             <td>{{ user.email }}</td>
             <td>{{ user.role }}</td>
             <td>{{ user.orders|length }}</td>

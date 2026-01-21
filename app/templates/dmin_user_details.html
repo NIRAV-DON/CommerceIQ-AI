@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+
+    <h1>User Details</h1>
+
+    <div class="dash-card" style="margin-bottom:2rem;">
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Role:</strong> {{ user.role }}</p>
+        <p><strong>Total Orders:</strong> {{ total_orders }}</p>
+        <p><strong>Total Spent:</strong> ₹{{ total_spent }}</p>
+    </div>
+
+    <h2>User Orders</h2>
+
+    {% if orders %}
+        {% for order in orders %}
+            <div class="order-card">
+                <p><strong>Order ID:</strong> #{{ order.order_id }}</p>
+                <p><strong>Date:</strong> {{ order.order_date.strftime('%d %b %Y') }}</p>
+                <p><strong>Amount:</strong> ₹{{ order.total_amount }}</p>
+                <p><strong>Status:</strong> {{ order.status }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No orders found for this user.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}
