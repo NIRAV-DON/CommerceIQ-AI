@@ -1,69 +1,81 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="container">
+<div class="admin-dashboard">
 
-    <h1 style="margin-bottom:2rem;">Admin Dashboard</h1>
+  <!-- TOP STATS -->
+ <div class="stats-grid">
 
-    <!-- STATS CARDS -->
-    <div class="dashboard-grid">
+    <!-- TOTAL USERS -->
+    <a href="{{ url_for('main.admin_users') }}" class="stat-card blue">
+        <h4>Total Users</h4>
+        <p>{{ total_users }}</p>
+    </a>
 
-        <div class="dash-card">
-            <h3>Total Products</h3>
-            <p>{{ total_products }}</p>
-        </div>
+    <!-- TOTAL PRODUCTS -->
+    <a href="{{ url_for('main.admin_products') }}" class="stat-card green">
+        <h4>Total Products</h4>
+        <p>{{ total_products }}</p>
+    </a>
 
-        <div class="dash-card">
-            <h3>Total Orders</h3>
-            <p>{{ total_orders }}</p>
-        </div>
+    <!-- TOTAL ORDERS -->
+     <a href="{{ url_for('main.admin_orders') }}" class="stat-card orange">
+            <h4>Total Orders</h4>
+            <h2>{{ total_orders }}</h2>
+        </a>
 
-        <div class="dash-card">
-            <h3>Total Users</h3>
-            <p>{{ total_users }}</p>
-        </div>
+    <!-- TOTAL SALES -->
+    <a href="{{ url_for('main.admin_sales') }}" class="stat-card purple">
+            <h4>Total Sales</h4>
+            <h2>₹ {{ total_sales }}</h2>
+        </a>
 
-        <div class="dash-card">
-            <h3>Total Sales</h3>
-            <p>₹{{ total_sales }}</p>
-        </div>
 
-        <div class="dash-card warning">
-            <h3>Low Stock</h3>
-            <p>{{ low_stock_products }}</p>
-        </div>
+    <!-- LOW STOCK -->
+   <a href="{{ url_for('main.admin_low_stock') }}" class="stat-card red">
+            <h4>Low Stock</h4>
+            <h2>{{ low_stock_products }}</h2>
+        </a>
 
-    </div>
-
-    <!-- CHART -->
-    <div class="chart-box">
-        <h2>Sales Forecast (AI)</h2>
-        <canvas id="salesChart"></canvas>
-    </div>
 
 </div>
 
+  <!-- AI FORECAST -->
+  <div class="chart-box">
+    <h2>AI Sales Forecast (Next 30 Days)</h2>
+    <canvas id="forecastChart"></canvas>
+  </div>
+
+</div>
+
+<!-- Chart JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const forecastData = {{ forecast_data | tojson }};
+  const forecastData = {{ forecast_data | tojson | safe }};
 
-    const labels = forecastData.map(item => item.date);
-    const values = forecastData.map(item => item.predicted_sales);
+  const labels = forecastData.map(d => d.date);
+  const values = forecastData.map(d => d.predicted_sales);
 
-    new Chart(document.getElementById('salesChart'), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Predicted Sales',
-                data: values,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37,99,235,0.2)',
-                tension: 0.4,
-                fill: true
-            }]
-        }
-    });
+  new Chart(document.getElementById("forecastChart"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Predicted Sales",
+        data: values,
+        borderColor: "#2563eb",
+        backgroundColor: "rgba(37,99,235,0.2)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: true }
+      }
+    }
+  });
 </script>
 
 {% endblock %}

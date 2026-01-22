@@ -29,6 +29,7 @@ class Product(db.Model):
     category = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reviews = db.relationship('Review', backref='product_reviewed', lazy=True)
+    
 
 class Order(db.Model):
     order_id = db.Column(db.Integer, primary_key=True)

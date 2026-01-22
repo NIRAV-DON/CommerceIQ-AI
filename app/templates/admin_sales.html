@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+    <h2>💰 Sales Analytics</h2>
+
+    <!-- SUMMARY -->
+    <div class="stats-row">
+        <div class="stat-box">
+            <h4>Total Revenue</h4>
+            <h2>₹ {{ total_sales }}</h2>
+        </div>
+
+        <div class="stat-box orange">
+            <h4>Total Orders</h4>
+            <h2>{{ total_orders }}</h2>
+        </div>
+
+        <div class="stat-box purple">
+            <h4>Avg Order Value</h4>
+            <h2>₹ {{ avg_order_value }}</h2>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- ORDER SALES TABLE -->
+    <h3>Order Wise Sales</h3>
+
+    <table border="1" width="100%" cellpadding="10">
+        <tr>
+            <th>Order ID</th>
+            <th>User ID</th>
+            <th>Total Amount</th>
+            <th>Date</th>
+        </tr>
+
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.order_id }}</td>
+            <td>{{ order.user_id }}</td>
+            <td>₹ {{ order.total_amount }}</td>
+            <td>{{ order.order_date }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endblock %}

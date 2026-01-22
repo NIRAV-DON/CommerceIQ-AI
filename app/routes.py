@@ -216,7 +216,7 @@ def checkout():
 
     total_price = 0
 
-    # 1️⃣ Create ORDER FIRST
+    # 1️⃣ Create order first
     order = Order(
         user_id=current_user.user_id,
         total_amount=0,
@@ -225,22 +225,28 @@ def checkout():
     db.session.add(order)
     db.session.commit()   # 🔴 VERY IMPORTANT
 
-    # 2️⃣ Create ORDER ITEMS
+    # 2️⃣ Loop through cart items
     for product_id, quantity in cart.items():
-        product = Product.query.get(product_id)
+
+        product = Product.query.get(int(product_id))
         if product:
+
             item_total = product.price * quantity
             total_price += item_total
 
+            # create order item
             order_item = OrderItem(
-                order_id=order.order_id,   # 🔥 KEY FIX
+                order_id=order.order_id,
                 product_id=product.product_id,
                 quantity=quantity,
                 price_per_unit=product.price
             )
             db.session.add(order_item)
 
-    # 3️⃣ Update total price
+            # 🔥 UPDATE STOCK
+            product.stock_quantity -= quantity
+
+    # 3️⃣ Update total amount
     order.total_amount = total_price
     db.session.commit()
 
@@ -249,6 +255,7 @@ def checkout():
 
     flash('Your order has been placed successfully!', 'success')
     return redirect(url_for('main.orders'))
+
 
 
 # ==================== ADMIN ROUTES ====================
@@ -271,11 +278,14 @@ def admin_dashboard():
     ).count()
 
     forecast_data = [
-        {"date": "Day 1", "predicted_sales": 10},
-        {"date": "Day 2", "predicted_sales": 15},
-        {"date": "Day 3", "predicted_sales": 8},
-        {"date": "Day 4", "predicted_sales": 20},
-    ]
+            {"date": "Day 1", "predicted_sales": 10},
+            {"date": "Day 2", "predicted_sales": 15},
+            {"date": "Day 3", "predicted_sales": 8},
+            {"date": "Day 4", "predicted_sales": 20},
+            {"date": "Day 5", "predicted_sales": 12},
+     ]
+
+    
 
     return render_template(
         "admin_dashboard.html",
@@ -308,6 +318,8 @@ def add_product():
         return redirect(url_for("main.admin_dashboard"))
 
     return render_template("add_product.html", form=form)
+
+
 
 # -------------------- ADMIN USERS --------------------
 @main.route("/admin/users")
@@ -356,4 +368,52 @@ def profile():
         user=user,
         total_orders=total_orders,
         total_spent=total_spent
+    )
+@main.route("/admin/products")
+@login_required
+@admin_required
+def admin_products():
+    products = Product.query.all()
+    return render_template("admin_products.html", products=products)
+
+@main.route("/admin/orders")
+@login_required
+@admin_required
+def admin_orders():
+    orders = Order.query.order_by(Order.order_date.desc()).all()
+    return render_template("admin_orders.html", orders=orders)
+@main.route("/admin/sales")
+@login_required
+@admin_required
+def admin_sales():
+    orders = Order.query.all()
+
+    total_sales = db.session.query(
+        db.func.sum(Order.total_amount)
+    ).scalar() or 0
+
+    total_orders = len(orders)
+
+    avg_order_value = 0
+    if total_orders > 0:
+        avg_order_value = total_sales / total_orders
+
+    return render_template(
+        "admin_sales.html",
+        total_sales=total_sales,
+        total_orders=total_orders,
+        avg_order_value=round(avg_order_value, 2),
+        orders=orders
+    )
+@main.route("/admin/low-stock")
+@login_required
+@admin_required
+def admin_low_stock():
+    low_stock_products = Product.query.filter(
+        Product.stock_quantity <= 5
+    ).all()
+
+    return render_template(
+        "admin_low_stock.html",
+        products=low_stock_products
     )

@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+    <h2>⚠️ Low Stock Products</h2>
+
+    {% if products %}
+    <table border="1" width="100%" cellpadding="10">
+        <tr>
+            <th>Product Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Stock Left</th>
+        </tr>
+
+        {% for product in products %}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.category }}</td>
+            <td>₹ {{ product.price }}</td>
+            <td style="color:red; font-weight:bold;">
+                {{ product.stock_quantity }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>All products are sufficiently stocked 👍</p>
+    {% endif %}
+</div>
+
+{% endblock %}
