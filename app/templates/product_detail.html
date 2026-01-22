@@ -2,23 +2,69 @@
 {% block content %}
 
 <div class="product-detail">
+
     <div class="product-left">
-        <img src="{{ product.image_url or url_for('static', filename='img/no-image.png') }}" alt="{{ product.name }}">
+        <img src="{{ product.image_url or url_for('static', filename='img/no-image.png') }}"
+             alt="{{ product.name }}">
     </div>
 
     <div class="product-right">
+
         <h1>{{ product.name }}</h1>
-        <p class="price">₹ {{ product.price }}</p>
+
+        {# -------- DISCOUNT LOGIC -------- #}
+        {% if product.discount_percent and product.discount_percent > 0 %}
+
+            <p class="price">
+                <span style="text-decoration: line-through; color: gray;">
+                    ₹ {{ product.price }}
+                </span>
+
+                <span style="color: green; font-weight: bold; font-size: 1.4rem;">
+                    ₹ {{ (product.price * (100 - product.discount_percent) / 100) | round(2) }}
+                </span>
+            </p>
+
+            <span class="discount-badge">
+                {{ product.discount_percent }}% OFF
+            </span>
+
+        {% else %}
+
+            <p class="price">₹ {{ product.price }}</p>
+
+        {% endif %}
+
         <p class="desc">{{ product.description }}</p>
 
-        <form method="POST" action="{{ url_for('main.add_to_cart', product_id=product.product_id) }}">
+        {# -------- STOCK STATUS -------- #}
+        {% if product.stock_quantity <= 0 %}
+            <p style="color:red; font-weight:bold;">Out of Stock</p>
+
+        {% elif product.stock_quantity <= 5 %}
+            <p style="color:red; font-weight:bold;">
+                Only {{ product.stock_quantity }} left in stock!
+            </p>
+        {% endif %}
+
+        {# -------- ADD TO CART -------- #}
+        {% if product.stock_quantity > 0 %}
+        <form method="POST"
+              action="{{ url_for('main.add_to_cart', product_id=product.product_id) }}">
+
             <label>Quantity</label>
-            <input type="number" name="quantity" value="1" min="1" max="10">
+            <input type="number"
+                   name="quantity"
+                   value="1"
+                   min="1"
+                   max="{{ product.stock_quantity }}">
 
             <button type="submit" class="btn">
                 Add to Cart
             </button>
         </form>
+        {% endif %}
+
     </div>
 </div>
 

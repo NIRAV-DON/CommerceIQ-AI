@@ -727,3 +727,32 @@ table {
 .purple { border-top: 4px solid #8b5cf6; }
 .red { border-top: 4px solid #ef4444; }
 
+.stock-warning {
+    color: red;
+    font-weight: bold;
+}
+
+.out-stock {
+    color: gray;
+    font-weight: bold;
+}
+
+.review-card {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.sentiment.positive { color: green; }
+.sentiment.negative { color: red; }
+.sentiment.neutral { color: gray; }
+.discount-badge {
+    display: inline-block;
+    background: #dc2626;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}

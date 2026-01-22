@@ -150,14 +150,29 @@ def product_detail(product_id):
 @main.route("/add_to_cart/<int:product_id>", methods=["POST"])
 @login_required
 def add_to_cart(product_id):
-    quantity = int(request.form.get("quantity", 1))
-    cart = session.get("cart", {})
+    product = Product.query.get_or_404(product_id)
 
+    quantity = int(request.form.get("quantity", 1))
+
+    # ❌ STOCK CHECK
+    if product.stock_quantity <= 0:
+        flash("Product is out of stock!", "danger")
+        return redirect(url_for("main.product_detail", product_id=product_id))
+
+    if quantity > product.stock_quantity:
+        flash(
+            f"Only {product.stock_quantity} item(s) available in stock.",
+            "danger"
+        )
+        return redirect(url_for("main.product_detail", product_id=product_id))
+
+    cart = session.get("cart", {})
     cart[str(product_id)] = cart.get(str(product_id), 0) + quantity
     session["cart"] = cart
 
     flash("Product added to cart!", "success")
     return redirect(url_for("main.cart"))
+
 @main.route("/orders")
 @login_required
 def orders():
@@ -205,56 +220,62 @@ def remove_from_cart(product_id):
     return redirect(url_for("main.cart"))
 
 # -------------------- CHECKOUT --------------------
-@main.route("/checkout", methods=['GET', 'POST'])
+@main.route("/checkout", methods=["GET", "POST"])
 @login_required
 def checkout():
-    cart = session.get('cart', {})
+    cart = session.get("cart", {})
 
     if not cart:
-        flash('Your cart is empty.', 'info')
-        return redirect(url_for('main.home'))
+        flash("Your cart is empty.", "info")
+        return redirect(url_for("main.home"))
 
     total_price = 0
 
-    # 1️⃣ Create order first
+    # ✅ CREATE ORDER FIRST
     order = Order(
         user_id=current_user.user_id,
         total_amount=0,
         shipping_address="123 Example St, City, Country"
     )
     db.session.add(order)
-    db.session.commit()   # 🔴 VERY IMPORTANT
+    db.session.commit()  # 🔴 IMPORTANT
 
-    # 2️⃣ Loop through cart items
+    # ✅ PROCESS EACH PRODUCT
     for product_id, quantity in cart.items():
-
         product = Product.query.get(int(product_id))
-        if product:
 
-            item_total = product.price * quantity
-            total_price += item_total
-
-            # create order item
-            order_item = OrderItem(
-                order_id=order.order_id,
-                product_id=product.product_id,
-                quantity=quantity,
-                price_per_unit=product.price
+        # ❌ FINAL STOCK CHECK
+        if not product or product.stock_quantity < quantity:
+            flash(
+                f"Product '{product.name}' is out of stock or insufficient quantity.",
+                "danger"
             )
-            db.session.add(order_item)
+            return redirect(url_for("main.cart"))
 
-            # 🔥 UPDATE STOCK
-            product.stock_quantity -= quantity
+        item_total = product.price * quantity
+        total_price += item_total
 
-    # 3️⃣ Update total amount
+        # 🔻 DECREASE STOCK
+        product.stock_quantity -= quantity
+
+        order_item = OrderItem(
+            order_id=order.order_id,
+            product_id=product.product_id,
+            quantity=quantity,
+            price_per_unit=product.price
+        )
+        db.session.add(order_item)
+
+    # ✅ UPDATE ORDER TOTAL
     order.total_amount = total_price
     db.session.commit()
 
-    # 4️⃣ Clear cart
-    session.pop('cart', None)
+    # ✅ CLEAR CART
+    session.pop("cart", None)
 
-    flash('Your order has been placed successfully!', 'success')
-    return redirect(url_for('main.orders'))
+    flash("Your order has been placed successfully!", "success")
+    return redirect(url_for("main.orders"))
+
 
 
 
@@ -405,6 +426,19 @@ def admin_sales():
         avg_order_value=round(avg_order_value, 2),
         orders=orders
     )
+@main.route("/admin/order/<int:order_id>/status", methods=["POST"])
+@login_required
+@admin_required
+def update_order_status(order_id):
+    order = Order.query.get_or_404(order_id)
+    new_status = request.form.get("status")
+
+    order.status = new_status
+    db.session.commit()
+
+    flash("Order status updated successfully!", "success")
+    return redirect(url_for("main.admin_orders"))
+
 @main.route("/admin/low-stock")
 @login_required
 @admin_required

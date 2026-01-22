@@ -24,21 +24,29 @@ class Product(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     price = db.Column(db.Numeric(10, 2), nullable=False)
+
+    discount_percent = db.Column(db.Integer, default=0)  
+
     stock_quantity = db.Column(db.Integer, nullable=False, default=0)
     image_url = db.Column(db.String(255), nullable=True)
     category = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reviews = db.relationship('Review', backref='product_reviewed', lazy=True)
+
     
 
 class Order(db.Model):
     order_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
+
     order_date = db.Column(db.DateTime, default=datetime.utcnow)
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
-    status = db.Column(db.String(20), default='Pending')
+    status = db.Column(db.String(20), default='Placed')
     shipping_address = db.Column(db.Text, nullable=False)
+
     items = db.relationship('OrderItem', backref='order', lazy=True)
+
+
 
 class OrderItem(db.Model):
     order_item_id = db.Column(db.Integer, primary_key=True)

@@ -1,39 +1,39 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="container">
-    <h2>📦 Order Analytics</h2>
+<h2>All Orders</h2>
 
-    <!-- SUMMARY -->
-    <div class="stats-row">
-        <div class="stat-box">
-            <h4>Total Orders</h4>
-            <h2>{{ total_orders }}</h2>
-        </div>
-    </div>
+<table border="1" cellpadding="10" width="100%">
+    <tr>
+        <th>Order ID</th>
+        <th>User ID</th>
+        <th>Total Amount</th>
+        <th>Status</th>
+        <th>Update</th>
+    </tr>
 
-    <hr>
+    {% for order in orders %}
+    <tr>
+        <td>#{{ order.order_id }}</td>
+        <td>{{ order.user_id }}</td>
+        <td>₹ {{ order.total_amount }}</td>
 
-    <!-- ORDERS TABLE -->
-    <h3>Recent Orders</h3>
+        <td>
+            <form method="POST" action="{{ url_for('main.update_order_status', order_id=order.order_id) }}">
+                <select name="status">
+                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Confirmed" {% if order.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                </select>
+        </td>
 
-    <table border="1" width="100%" cellpadding="10">
-        <tr>
-            <th>Order ID</th>
-            <th>User ID</th>
-            <th>Total Amount</th>
-            <th>Date</th>
-        </tr>
-
-        {% for order in orders %}
-        <tr>
-            <td>{{ order.order_id }}</td>
-            <td>{{ order.user_id }}</td>
-            <td>₹ {{ order.total_amount }}</td>
-            <td>{{ order.order_date }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
+        <td>
+                <button type="submit">Save</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
 
 {% endblock %}
