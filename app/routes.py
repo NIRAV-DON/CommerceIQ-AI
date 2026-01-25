@@ -125,11 +125,12 @@ def product_detail(product_id):
 
     if form.validate_on_submit():
         review = Review(
-            rating=form.rating.data,
+                rating=form.rating.data,
             comment=form.comment.data,
-            author=current_user,
-            product=product
-        )
+            user_id=current_user.user_id,
+            product_id=product.product_id
+            )
+        
         db.session.add(review)
         db.session.commit()
         flash("Review added!", "success")
@@ -138,13 +139,74 @@ def product_detail(product_id):
     reviews = Review.query.filter_by(
         product_id=product_id
     ).order_by(Review.created_at.desc()).all()
+    review_count = len(reviews)
+
+    if review_count > 0:
+        avg_rating = round(
+        sum([r.rating for r in reviews]) / review_count,
+        1
+    )
+    else:
+        avg_rating = 0
+
 
     return render_template(
-        "product_detail.html",
-        product=product,
-        form=form,
-        reviews=reviews
+    "product_detail.html",
+    product=product,
+    form=form,
+    reviews=reviews,
+    review_count=review_count,
+    avg_rating=avg_rating
+)
+@main.route("/review/<int:review_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_review(review_id):
+    review = Review.query.get_or_404(review_id)
+
+    # 🔒 security: only owner
+    if review.user_id != current_user.user_id:
+        flash("Unauthorized access", "danger")
+        return redirect(url_for("main.home"))
+
+    form = ReviewForm()
+
+    if form.validate_on_submit():
+        review.rating = form.rating.data
+        review.comment = form.comment.data
+        db.session.commit()
+
+        flash("Review updated!", "success")
+        return redirect(
+            url_for("main.product_detail", product_id=review.product_id)
+        )
+
+    # form pre-fill
+    form.rating.data = review.rating
+    form.comment.data = review.comment
+
+    return render_template("edit_review.html", form=form)
+
+
+@main.route("/review/<int:review_id>/delete", methods=["POST"])
+@login_required
+def delete_review(review_id):
+    review = Review.query.get_or_404(review_id)
+
+    # 🔒 only owner
+    if review.user_id != current_user.user_id:
+        flash("Unauthorized action", "danger")
+        return redirect(url_for("main.home"))
+
+    product_id = review.product_id
+
+    db.session.delete(review)
+    db.session.commit()
+
+    flash("Review deleted!", "info")
+    return redirect(
+        url_for("main.product_detail", product_id=product_id)
     )
+
 
 # -------------------- CART --------------------
 @main.route("/add_to_cart/<int:product_id>", methods=["POST"])
@@ -184,6 +246,35 @@ def orders():
         "orders.html",
         orders=user_orders
     )
+@main.route("/order/cancel/<int:order_id>", methods=["POST"])
+@login_required
+def cancel_order(order_id):
+
+    order = Order.query.get_or_404(order_id)
+
+    # 🔐 Security check (only owner)
+    if order.user_id != current_user.user_id:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for("main.orders"))
+
+    # ❌ Cannot cancel if shipped
+    if order.status in ["Shipped", "Out for Delivery", "Delivered"]:
+        flash("Order cannot be cancelled now.", "danger")
+        return redirect(url_for("main.orders"))
+
+    # ✅ RESTORE STOCK
+    for item in order.items:
+        product = Product.query.get(item.product_id)
+        if product:
+            product.stock_quantity += item.quantity
+
+    # ✅ UPDATE STATUS
+    order.status = "Cancelled"
+    db.session.commit()
+
+    flash("Order cancelled successfully.", "success")
+    return redirect(url_for("main.orders"))
+
 
 
 @main.route("/cart")
@@ -220,9 +311,12 @@ def remove_from_cart(product_id):
     return redirect(url_for("main.cart"))
 
 # -------------------- CHECKOUT --------------------
+from datetime import date, timedelta
+
 @main.route("/checkout", methods=["GET", "POST"])
 @login_required
 def checkout():
+
     cart = session.get("cart", {})
 
     if not cart:
@@ -231,25 +325,43 @@ def checkout():
 
     total_price = 0
 
+    # ---------------- DELIVERY LOGIC ----------------
+    base_days = 5
+
+    payment_method = "COD"          # future ma form mathi aavse
+    city = "Ahmedabad"              # future ma address mathi aavse
+
+    if payment_method == "COD":
+        base_days += 2
+
+    metro_cities = ["Ahmedabad", "Mumbai", "Delhi", "Bangalore"]
+    if city in metro_cities:
+        base_days -= 1
+
+    estimated_delivery = date.today() + timedelta(days=base_days)
+    # ------------------------------------------------
+
     # ✅ CREATE ORDER FIRST
     order = Order(
         user_id=current_user.user_id,
         total_amount=0,
-        shipping_address="123 Example St, City, Country"
+        status="Pending",
+        shipping_address="123 Example Street",
+        payment_method=payment_method,
+        city=city,
+        estimated_delivery=estimated_delivery
     )
+
     db.session.add(order)
-    db.session.commit()  # 🔴 IMPORTANT
+    db.session.commit()   # 🔴 VERY IMPORTANT
 
     # ✅ PROCESS EACH PRODUCT
     for product_id, quantity in cart.items():
+
         product = Product.query.get(int(product_id))
 
-        # ❌ FINAL STOCK CHECK
         if not product or product.stock_quantity < quantity:
-            flash(
-                f"Product '{product.name}' is out of stock or insufficient quantity.",
-                "danger"
-            )
+            flash("Product out of stock!", "danger")
             return redirect(url_for("main.cart"))
 
         item_total = product.price * quantity
@@ -264,9 +376,10 @@ def checkout():
             quantity=quantity,
             price_per_unit=product.price
         )
+
         db.session.add(order_item)
 
-    # ✅ UPDATE ORDER TOTAL
+    # ✅ UPDATE FINAL TOTAL
     order.total_amount = total_price
     db.session.commit()
 
@@ -275,8 +388,6 @@ def checkout():
 
     flash("Your order has been placed successfully!", "success")
     return redirect(url_for("main.orders"))
-
-
 
 
 # ==================== ADMIN ROUTES ====================
@@ -289,6 +400,7 @@ def admin_dashboard():
     total_products = Product.query.count()
     total_orders = Order.query.count()
     total_users = User.query.count()
+    
 
     total_sales = db.session.query(
         db.func.sum(Order.total_amount)
@@ -297,6 +409,8 @@ def admin_dashboard():
     low_stock_products = Product.query.filter(
         Product.stock_quantity <= 5
     ).count()
+    
+    cancelled_orders = Order.query.filter_by(status="Cancelled").count()
 
     forecast_data = [
             {"date": "Day 1", "predicted_sales": 10},
@@ -315,7 +429,8 @@ def admin_dashboard():
         total_users=total_users,
         total_sales=total_sales,
         low_stock_products=low_stock_products,
-        forecast_data=forecast_data
+        cancelled_orders=cancelled_orders,
+        forecast_data=forecast_data         
     )
 
 # -------------------- ADD PRODUCT --------------------
@@ -394,8 +509,19 @@ def profile():
 @login_required
 @admin_required
 def admin_products():
-    products = Product.query.all()
-    return render_template("admin_products.html", products=products)
+    low_stock = request.args.get("low_stock")
+
+    if low_stock:
+        products = Product.query.filter(Product.stock_quantity <= 5).all()
+    else:
+        products = Product.query.all()
+
+    return render_template(
+        "admin_products.html",
+        products=products,
+        low_stock=low_stock
+    )
+
 
 @main.route("/admin/orders")
 @login_required
@@ -426,18 +552,33 @@ def admin_sales():
         avg_order_value=round(avg_order_value, 2),
         orders=orders
     )
-@main.route("/admin/order/<int:order_id>/status", methods=["POST"])
+@main.route("/admin/order/update/<int:order_id>", methods=["POST"])
 @login_required
 @admin_required
 def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
+
     new_status = request.form.get("status")
+
+    allowed_status = [
+        "Pending",
+        "Confirmed",
+        "Shipped",
+        "Out for Delivery",
+        "Delivered"
+    ]
+
+    if new_status not in allowed_status:
+        flash("Invalid status", "danger")
+        return redirect(url_for("main.admin_orders"))
 
     order.status = new_status
     db.session.commit()
 
-    flash("Order status updated successfully!", "success")
+    flash("Order status updated!", "success")
     return redirect(url_for("main.admin_orders"))
+
+
 
 @main.route("/admin/low-stock")
 @login_required
@@ -451,3 +592,16 @@ def admin_low_stock():
         "admin_low_stock.html",
         products=low_stock_products
     )
+@main.route("/admin/orders/cancelled")
+@login_required
+@admin_required
+def admin_cancelled_orders():
+    cancelled_orders = Order.query.filter_by(status="Cancelled") \
+                                  .order_by(Order.order_date.desc()) \
+                                  .all()
+
+    return render_template(
+        "admin_cancelled_orders.html",
+        orders=cancelled_orders
+    )
+

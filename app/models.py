@@ -45,6 +45,10 @@ class Order(db.Model):
     shipping_address = db.Column(db.Text, nullable=False)
 
     items = db.relationship('OrderItem', backref='order', lazy=True)
+    estimated_delivery = db.Column(db.Date, nullable=True)
+    payment_method = db.Column(db.String(20), default="Online")
+    city = db.Column(db.String(50))
+
 
 
 
@@ -64,3 +68,4 @@ class Review(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('product.product_id'), nullable=False)
+    

@@ -9,7 +9,7 @@
         <th>User ID</th>
         <th>Total Amount</th>
         <th>Status</th>
-        <th>Update</th>
+        
     </tr>
 
     {% for order in orders %}
@@ -19,19 +19,29 @@
         <td>₹ {{ order.total_amount }}</td>
 
         <td>
-            <form method="POST" action="{{ url_for('main.update_order_status', order_id=order.order_id) }}">
-                <select name="status">
-                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
-                    <option value="Confirmed" {% if order.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
-                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
-                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                </select>
+           <form method="POST" action="{{ url_for('main.update_order_status', order_id=order.order_id) }}">
+    <select name="status">
+        <option value="Pending" {% if order.status=='Pending' %}selected{% endif %}>Pending</option>
+        <option value="Confirmed" {% if order.status=='Confirmed' %}selected{% endif %}>Confirmed</option>
+        <option value="Shipped" {% if order.status=='Shipped' %}selected{% endif %}>Shipped</option>
+        <option value="Out for Delivery" {% if order.status=='Out for Delivery' %}selected{% endif %}>
+            Out for Delivery
+        </option>
+        <option value="Delivered" {% if order.status=='Delivered' %}selected{% endif %}>Delivered</option>
+        <option value="Cancelled" {% if order.status=='Cancelled' %}selected{% endif %}>Cancelled</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">
+        Update Status
+    </button>
+</form>
+
+
         </td>
 
-        <td>
-                <button type="submit">Save</button>
+        
             </form>
-        </td>
+        
     </tr>
     {% endfor %}
 </table>

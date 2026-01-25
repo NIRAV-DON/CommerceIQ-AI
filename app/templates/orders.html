@@ -6,32 +6,92 @@
 
     {% if orders %}
         {% for order in orders %}
-            <div class="order-card">
-                <div class="order-row">
-                    <strong>Order ID:</strong> #{{ order.order_id }}
+        <div class="order-card">
+
+            <h4>Order #{{ order.order_id }}</h4>
+            <p><strong>Total:</strong> ₹{{ order.total_amount }}</p>
+            <p><strong>Payment:</strong> {{ order.payment_method }}</p>
+            <p><strong>City:</strong> {{ order.city }}</p>
+
+            <!-- 🚚 STATUS TEXT -->
+            {% if order.status == 'Pending' %}
+                <p>🕒 Order processing</p>
+            {% elif order.status == 'Shipped' %}
+                <p>🚚 On the way</p>
+            {% elif order.status == 'Out for Delivery' %}
+                <p>🏍️ Arriving today</p>
+            {% elif order.status == 'Delivered' %}
+                <p>✅ Delivered</p>
+            {% endif %}
+
+            <!-- 📦 DELIVERY DATE -->
+            {% if order.estimated_delivery %}
+            <p>
+                📦 Estimated Delivery:
+                <strong>{{ order.estimated_delivery.strftime('%d %b %Y') }}</strong>
+            </p>
+            {% endif %}
+
+            <!-- 🕒 TIMELINE -->
+            <div class="timeline">
+                <div class="step {% if order.status in ['Pending','Confirmed','Shipped','Out for Delivery','Delivered'] %}active{% endif %}">
+                    Placed
                 </div>
 
-                <div class="order-row">
-                    <strong>Date:</strong>
-                    {{ order.order_date.strftime('%d %b %Y') }}
+                <div class="step {% if order.status in ['Confirmed','Shipped','Out for Delivery','Delivered'] %}active{% endif %}">
+                    Confirmed
                 </div>
 
-                <div class="order-row">
-                    <strong>Total Amount:</strong>
-                    ₹{{ order.total_amount }}
+                <div class="step {% if order.status in ['Shipped','Out for Delivery','Delivered'] %}active{% endif %}">
+                    Shipped
                 </div>
 
-                <div class="order-row">
-                    <strong>Status:</strong>
-                    <span class="status {{ order.status|lower }}">
-                        {{ order.status }}
-                    </span>
+                <div class="step {% if order.status in ['Out for Delivery','Delivered'] %}active{% endif %}">
+                    Out for Delivery
+                </div>
+
+                <div class="step {% if order.status == 'Delivered' %}active{% endif %}">
+                    Delivered
                 </div>
             </div>
+            {% if order.status in ['Pending', 'Confirmed'] %}
+<form method="POST"
+      action="{{ url_for('main.cancel_order', order_id=order.order_id) }}"
+      style="margin-top:10px;">
+    <button class="btn btn-danger"
+            onclick="return confirm('Cancel this order?')">
+        ❌ Cancel Order
+    </button>
+</form>
+{% endif %}
+<p>
+Status:
+<span class="status {{ order.status|lower }}">
+    {{ order.status }}
+</span>
+</p>
+
+        </div>
         {% endfor %}
     {% else %}
         <p>You have not placed any orders yet.</p>
     {% endif %}
 </div>
+{% for order in orders %}
+
+    <div class="order-card">
+
+        <h4>Order #{{ order.order_id }}</h4>
+        <p>Total: ₹{{ order.total_amount }}</p>
+
+        {% if order.status == 'Cancelled' %}
+            <p style="color:red;">❌ This order was cancelled</p>
+        {% endif %}
+
+    </div>
+
+{% endfor %}
+
+
 
 {% endblock %}

@@ -3,91 +3,129 @@
 
 <div class="product-detail">
 
+    <!-- LEFT IMAGE -->
     <div class="product-left">
         <img src="{{ product.image_url or url_for('static', filename='img/no-image.png') }}"
              alt="{{ product.name }}">
     </div>
 
+    <!-- RIGHT INFO -->
     <div class="product-right">
-
         <h1>{{ product.name }}</h1>
 
-        {# -------- DISCOUNT LOGIC -------- #}
-        {% if product.discount_percent and product.discount_percent > 0 %}
+        <!-- ⭐ RATING SUMMARY -->
+        <div class="rating-summary">
+            {% if review_count > 0 %}
+                ⭐ <strong>{{ avg_rating }}</strong> / 5
+                <span>({{ review_count }} reviews)</span>
+            {% else %}
+                <span>No ratings yet</span>
+            {% endif %}
+        </div>
 
-            <p class="price">
-                <span style="text-decoration: line-through; color: gray;">
-                    ₹ {{ product.price }}
-                </span>
-
-                <span style="color: green; font-weight: bold; font-size: 1.4rem;">
-                    ₹ {{ (product.price * (100 - product.discount_percent) / 100) | round(2) }}
-                </span>
-            </p>
-
-            <span class="discount-badge">
-                {{ product.discount_percent }}% OFF
-            </span>
-
-        {% else %}
-
-            <p class="price">₹ {{ product.price }}</p>
-
-        {% endif %}
-
+        <p class="price">₹ {{ product.price }}</p>
         <p class="desc">{{ product.description }}</p>
 
-        {# -------- STOCK STATUS -------- #}
-        {% if product.stock_quantity <= 0 %}
-            <p style="color:red; font-weight:bold;">Out of Stock</p>
-
+        <!-- STOCK STATUS -->
+        {% if product.stock_quantity == 0 %}
+            <p class="stock out">Out of Stock</p>
         {% elif product.stock_quantity <= 5 %}
-            <p style="color:red; font-weight:bold;">
-                Only {{ product.stock_quantity }} left in stock!
+            <p class="stock low">
+                Only {{ product.stock_quantity }} left!
             </p>
         {% endif %}
 
-        {# -------- ADD TO CART -------- #}
+        <!-- ADD TO CART -->
         {% if product.stock_quantity > 0 %}
         <form method="POST"
               action="{{ url_for('main.add_to_cart', product_id=product.product_id) }}">
-
-            <label>Quantity</label>
             <input type="number"
                    name="quantity"
                    value="1"
                    min="1"
                    max="{{ product.stock_quantity }}">
-
-            <button type="submit" class="btn">
-                Add to Cart
-            </button>
+            <button class="btn">Add to Cart</button>
         </form>
         {% endif %}
-
     </div>
 </div>
 
 <hr>
 
+<!-- ⭐ REVIEW FORM -->
+<h2>Write a Review</h2>
+
+{% if current_user.is_authenticated %}
+<form method="POST">
+
+    {{ form.hidden_tag() }}
+
+    <label>Rating</label>
+    <div class="star-rating">
+        {% for i in range(5, 0, -1) %}
+            <input type="radio"
+                   id="star{{ i }}"
+                   name="rating"
+                   value="{{ i }}"
+                   required>
+            <label for="star{{ i }}">★</label>
+        {% endfor %}
+    </div>
+
+    <textarea name="comment"
+              placeholder="Write your review..."
+              required></textarea>
+
+    <button type="submit" class="btn">
+        Submit Review
+    </button>
+</form>
+{% else %}
+<p>
+    <a href="{{ url_for('main.login') }}">Login</a> to write a review.
+</p>
+{% endif %}
+
+<hr>
+
+<!-- ⭐ REVIEWS LIST -->
 <h2>Customer Reviews</h2>
 
 {% if reviews %}
     {% for review in reviews %}
-        <div class="review-card">
+    <div class="review-card">
+
+        <div class="review-header">
             <strong>{{ review.author.username }}</strong>
-            ⭐ {{ review.rating }}/5
-
-            {% if review.sentiment == 'positive' %}
-                <span class="sentiment positive">👍 Positive</span>
-            {% elif review.sentiment == 'negative' %}
-                <span class="sentiment negative">👎 Negative</span>
-            {% else %}
-                <span class="sentiment neutral">😐 Neutral</span>
-            {% endif %}
-
-            <p>{{ review.comment }}</p>
+            <span>
+                {% for i in range(review.rating) %}
+                    ⭐
+                {% endfor %}
+            </span>
         </div>
+
+        <p>{{ review.comment }}</p>
+
+        {% if current_user.is_authenticated
+              and current_user.user_id == review.user_id %}
+        <div class="review-actions">
+            <a href="{{ url_for('main.edit_review',
+                                review_id=review.review_id) }}">
+                Edit
+            </a>
+
+            <form method="POST"
+                  action="{{ url_for('main.delete_review',
+                                     review_id=review.review_id) }}"
+                  style="display:inline;">
+                <button type="submit"
+                        onclick="return confirm('Delete this review?')">
+                    Delete
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
     {% endfor %}
 {% else %}
     <p>No reviews yet.</p>

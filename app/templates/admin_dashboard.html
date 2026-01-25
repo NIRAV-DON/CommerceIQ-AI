@@ -6,39 +6,46 @@
   <!-- TOP STATS -->
  <div class="stats-grid">
 
+    <div class="dashboard-cards">
+
     <!-- TOTAL USERS -->
-    <a href="{{ url_for('main.admin_users') }}" class="stat-card blue">
+    <a href="{{ url_for('main.admin_users') }}" class="dash-card blue">
         <h4>Total Users</h4>
         <p>{{ total_users }}</p>
     </a>
 
     <!-- TOTAL PRODUCTS -->
-    <a href="{{ url_for('main.admin_products') }}" class="stat-card green">
+    <a href="{{ url_for('main.admin_products') }}" class="dash-card green">
         <h4>Total Products</h4>
         <p>{{ total_products }}</p>
     </a>
 
     <!-- TOTAL ORDERS -->
-     <a href="{{ url_for('main.admin_orders') }}" class="stat-card orange">
-            <h4>Total Orders</h4>
-            <h2>{{ total_orders }}</h2>
-        </a>
+    <a href="{{ url_for('main.admin_orders') }}" class="dash-card yellow">
+        <h4>Total Orders</h4>
+        <p>{{ total_orders }}</p>
+    </a>
 
     <!-- TOTAL SALES -->
-    <a href="{{ url_for('main.admin_sales') }}" class="stat-card purple">
-            <h4>Total Sales</h4>
-            <h2>₹ {{ total_sales }}</h2>
-        </a>
-
+    <div class="dash-card purple" class="dash-card purple">
+        <h4>Total Sales</h4>
+        <p>₹ {{ total_sales }}</p>
+    </div>
 
     <!-- LOW STOCK -->
-   <a href="{{ url_for('main.admin_low_stock') }}" class="stat-card red">
-            <h4>Low Stock</h4>
-            <h2>{{ low_stock_products }}</h2>
-        </a>
+    <a href="{{ url_for('main.admin_products') }}" class="dash-card red">
+        <h4>Low Stock</h4>
+        <p>{{ low_stock_products }}</p>
+    </a>
 
+    <!-- ❌ CANCELLED ORDERS -->
+    <a href="{{ url_for('main.admin_cancelled_orders') }}" class="dash-card pink">
+        <h4>Cancelled Orders</h4>
+        <p>{{ cancelled_orders }}</p>
+    </a>
 
 </div>
+
 
   <!-- AI FORECAST -->
   <div class="chart-box">
