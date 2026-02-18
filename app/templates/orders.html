@@ -3,6 +3,7 @@
 
 <div class="container">
     <h1 style="margin-bottom: 1.5rem;">My Orders</h1>
+    
 
     {% if orders %}
         {% for order in orders %}
@@ -31,6 +32,11 @@
                 <strong>{{ order.estimated_delivery.strftime('%d %b %Y') }}</strong>
             </p>
             {% endif %}
+            <a href="{{ url_for('main.download_invoice', order_id=order.order_id) }}"
+   class="btn"
+   style="margin-top:10px; display:inline-block;">
+   Download Invoice
+</a>
 
             <!-- 🕒 TIMELINE -->
             <div class="timeline">
@@ -63,6 +69,18 @@
         ❌ Cancel Order
     </button>
 </form>
+<form method="GET" style="margin-bottom:20px;">
+    <select name="status" onchange="this.form.submit()">
+        <option value="All">All Orders</option>
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Shipped">Shipped</option>
+        <option value="Out for Delivery">Out for Delivery</option>
+        <option value="Delivered">Delivered</option>
+        <option value="Cancelled">Cancelled</option>
+    </select>
+</form>
+
 {% endif %}
 <p>
 Status:

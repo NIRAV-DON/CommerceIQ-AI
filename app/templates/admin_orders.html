@@ -3,6 +3,38 @@
 
 <h2>All Orders</h2>
 
+
+<form method="GET" class="order-filter">
+
+    <select name="status">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Shipped">Shipped</option>
+        <option value="Out for Delivery">Out for Delivery</option>
+        <option value="Delivered">Delivered</option>
+        <option value="Cancelled">Cancelled</option>
+    </select>
+
+    <input type="date" name="start_date" value="{{ start_date }}">
+    <input type="date" name="end_date" value="{{ end_date }}">
+
+    <button type="submit" class="btn">Filter</button>
+
+    <a href="{{ url_for('main.admin_orders') }}" class="btn">Reset</a>
+
+</form>
+
+<a href="{{ url_for('main.orders_pdf',
+                    status=status,
+                    start_date=start_date,
+                    end_date=end_date) }}"
+   class="btn"
+   style="margin:15px 0;">
+   Download PDF
+</a>
+
+
 <table border="1" cellpadding="10" width="100%">
     <tr>
         <th>Order ID</th>

@@ -4,6 +4,17 @@ from .forms import RegistrationForm, LoginForm, ProductForm, ReviewForm
 from .models import User, Product, Order, OrderItem, Review
 from flask_login import login_user, current_user, logout_user, login_required
 from functools import wraps
+from io import BytesIO
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import inch
+from decimal import Decimal
+from flask import send_file
+from datetime import datetime
+from sqlalchemy import func
+from datetime import datetime, timedelta
 
 # Blueprint
 main = Blueprint('main', __name__)
@@ -234,18 +245,135 @@ def add_to_cart(product_id):
 
     flash("Product added to cart!", "success")
     return redirect(url_for("main.cart"))
-
 @main.route("/orders")
 @login_required
 def orders():
-    user_orders = Order.query.filter_by(
-        user_id=current_user.user_id
-    ).order_by(Order.order_date.desc()).all()
+
+    status_filter = request.args.get("status")
+
+    query = Order.query.filter_by(user_id=current_user.user_id)
+
+    if status_filter and status_filter != "All":
+        query = query.filter_by(status=status_filter)
+
+    user_orders = query.order_by(Order.order_date.desc()).all()
 
     return render_template(
         "orders.html",
-        orders=user_orders
+        orders=user_orders,
+        selected_status=status_filter or "All"
     )
+@main.route("/order/invoice/<int:order_id>")
+@login_required
+def download_invoice(order_id):
+
+    order = Order.query.get_or_404(order_id)
+
+    if order.user_id != current_user.user_id:
+        flash("Unauthorized access", "danger")
+        return redirect(url_for("main.orders"))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # =============================
+    # HEADER
+    # =============================
+    elements.append(Paragraph("<font size=20><b>CommerceIQ AI</b></font>", styles["Title"]))
+   
+    elements.append(Spacer(1, 20))
+
+    # =============================
+    # BILL TO
+    # =============================
+    elements.append(Paragraph("<b>Bill To:</b>", styles["Heading3"]))
+    elements.append(Paragraph(current_user.username, styles["Normal"]))
+    elements.append(Paragraph(current_user.email, styles["Normal"]))
+    elements.append(Spacer(1, 15))
+
+    # =============================
+    # ORDER INFO TABLE
+    # =============================
+    order_info_data = [
+        ["Order ID", str(order.order_id)],
+        ["Order Date", order.order_date.strftime("%d %b %Y")],
+        ["Status", order.status]
+    ]
+
+    order_table = Table(order_info_data, colWidths=[120, 250])
+    order_table.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+        ("BACKGROUND", (0,0), (0,-1), colors.whitesmoke),
+        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+        ("FONTSIZE", (0,0), (-1,-1), 10),
+    ]))
+
+    elements.append(order_table)
+    elements.append(Spacer(1, 25))
+
+    # =============================
+    # PRODUCT TABLE
+    # =============================
+    data = [["Product", "Qty", "Unit Price (₹)", "Total (₹)"]]
+
+    grand_total = Decimal(0)
+
+    for item in order.items:
+        product = Product.query.get(item.product_id)
+        if not product:
+            continue
+
+        item_total = item.price_per_unit * item.quantity
+        grand_total += item_total
+
+        data.append([
+            product.name,
+            str(item.quantity),
+            f"{item.price_per_unit:.2f}",
+            f"{item_total:.2f}"
+        ])
+
+    # Grand total row
+    data.append(["", "", "Grand Total", f"{grand_total:.2f}"])
+
+    product_table = Table(data, colWidths=[200, 60, 100, 100])
+    product_table.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("ALIGN", (1,1), (-1,-1), "CENTER"),
+        ("BACKGROUND", (-2,-1), (-1,-1), colors.whitesmoke),
+        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+    ]))
+
+    elements.append(product_table)
+    elements.append(Spacer(1, 30))
+
+    # =============================
+    # FOOTER
+    # =============================
+    elements.append(Paragraph("Thank you for shopping with CommerceIQ AI.", styles["Normal"]))
+    
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"Invoice_Order_{order.order_id}.pdf",
+        mimetype="application/pdf"
+    )
+
 @main.route("/order/cancel/<int:order_id>", methods=["POST"])
 @login_required
 def cancel_order(order_id):
@@ -397,30 +525,39 @@ def checkout():
 @login_required
 @admin_required
 def admin_dashboard():
+
     total_products = Product.query.count()
     total_orders = Order.query.count()
     total_users = User.query.count()
-    
 
     total_sales = db.session.query(
-        db.func.sum(Order.total_amount)
+        func.sum(Order.total_amount)
     ).scalar() or 0
 
-    low_stock_products = Product.query.filter(
-        Product.stock_quantity <= 5
-    ).count()
-    
     cancelled_orders = Order.query.filter_by(status="Cancelled").count()
 
-    forecast_data = [
-            {"date": "Day 1", "predicted_sales": 10},
-            {"date": "Day 2", "predicted_sales": 15},
-            {"date": "Day 3", "predicted_sales": 8},
-            {"date": "Day 4", "predicted_sales": 20},
-            {"date": "Day 5", "predicted_sales": 12},
-     ]
+    # 🔥 LAST 7 DAYS SALES
+    last_7_days = datetime.now() - timedelta(days=7)
 
-    
+    sales_data = db.session.query(
+        func.date(Order.order_date),
+        func.sum(Order.total_amount),
+        func.count(Order.order_id)
+    ).filter(
+        Order.order_date >= last_7_days
+    ).group_by(
+        func.date(Order.order_date)
+    ).all()
+
+    # Prepare chart data
+    chart_labels = []
+    chart_sales = []
+    chart_orders = []
+
+    for row in sales_data:
+        chart_labels.append(row[0].strftime("%d %b"))
+        chart_sales.append(float(row[1]))
+        chart_orders.append(row[2])
 
     return render_template(
         "admin_dashboard.html",
@@ -428,10 +565,79 @@ def admin_dashboard():
         total_orders=total_orders,
         total_users=total_users,
         total_sales=total_sales,
-        low_stock_products=low_stock_products,
         cancelled_orders=cancelled_orders,
-        forecast_data=forecast_data         
+        chart_labels=chart_labels,
+        chart_sales=chart_sales,
+        chart_orders=chart_orders
     )
+@main.route("/admin/report/users")
+@login_required
+@admin_required
+def admin_users_report():
+
+    from_date = request.args.get("from_date")
+    to_date = request.args.get("to_date")
+
+    query = Order.query
+
+    if from_date and to_date:
+        query = query.filter(
+            Order.order_date.between(from_date, to_date)
+        )
+
+    orders = query.order_by(Order.order_date.desc()).all()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("<b>CommerceIQ AI - Admin Report</b>", styles["Title"]))
+    elements.append(Spacer(1, 15))
+
+    elements.append(Paragraph(
+        f"Date Range: {from_date} to {to_date}",
+        styles["Normal"]
+    ))
+    elements.append(Spacer(1, 20))
+
+    data = [["Order ID", "User", "Date", "Status", "Amount (Rs)"]]
+
+    total_amount = Decimal(0)
+
+    for order in orders:
+        user = User.query.get(order.user_id)
+        total_amount += order.total_amount
+
+        data.append([
+            str(order.order_id),
+            user.username if user else "Unknown",
+            order.order_date.strftime("%d %b %Y"),
+            order.status,
+            f"{order.total_amount:.2f}"
+        ])
+
+    data.append(["", "", "", "Total", f"{total_amount:.2f}"])
+
+    table = Table(data, colWidths=[60, 90, 90, 90, 80])
+    table.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("ALIGN", (-1,1), (-1,-1), "RIGHT"),
+    ]))
+
+    elements.append(table)
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="Admin_User_Report.pdf",
+        mimetype="application/pdf"
+    )
+
 
 # -------------------- ADD PRODUCT --------------------
 @main.route("/admin/product/new", methods=["GET", "POST"])
@@ -462,8 +668,28 @@ def add_product():
 @login_required
 @admin_required
 def admin_users():
-    users = User.query.all()
-    return render_template("admin_users.html", users=users)
+
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    users_query = User.query
+
+    if start_date and end_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+
+        users_query = users_query.filter(
+            User.created_at.between(start, end)
+        )
+
+    users = users_query.order_by(User.created_at.desc()).all()
+
+    return render_template(
+        "admin_users.html",
+        users=users,
+        start_date=start_date,
+        end_date=end_date
+    )
 @main.route("/admin/user/<int:user_id>")
 @login_required
 @admin_required
@@ -486,6 +712,63 @@ def admin_user_detail(user_id):
         total_orders=total_orders,
         total_spent=total_spent
     )
+@main.route("/admin/users/pdf")
+@login_required
+@admin_required
+def users_pdf():
+
+    
+
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    users_query = User.query
+
+    if start_date and end_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        users_query = users_query.filter(
+            User.created_at.between(start, end)
+        )
+
+    users = users_query.order_by(User.created_at.desc()).all()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("<b>CommerceIQ AI - User Report</b>", styles["Title"]))
+    elements.append(Spacer(1, 20))
+
+    data = [["Username", "Email", "Role", "Registered On"]]
+
+    for user in users:
+        data.append([
+            user.username,
+            user.email,
+            user.role,
+            user.created_at.strftime("%d %b %Y")
+        ])
+
+    table = Table(data)
+    table.setStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+    ])
+
+    elements.append(table)
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="Users_Report.pdf",
+        mimetype="application/pdf"
+    )
+
 
 
 # -------------------- PROFILE --------------------
@@ -522,13 +805,100 @@ def admin_products():
         low_stock=low_stock
     )
 
-
 @main.route("/admin/orders")
 @login_required
 @admin_required
 def admin_orders():
-    orders = Order.query.order_by(Order.order_date.desc()).all()
-    return render_template("admin_orders.html", orders=orders)
+
+    status = request.args.get("status")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    orders_query = Order.query
+
+    # 🔹 Status filter
+    if status:
+        orders_query = orders_query.filter_by(status=status)
+
+    # 🔹 Date filter
+    if start_date and end_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        orders_query = orders_query.filter(
+            Order.order_date.between(start, end)
+        )
+
+    orders = orders_query.order_by(Order.order_date.desc()).all()
+
+    return render_template(
+        "admin_orders.html",
+        orders=orders,
+        status=status,
+        start_date=start_date,
+        end_date=end_date
+    )
+@main.route("/admin/orders/pdf")
+@login_required
+@admin_required
+def orders_pdf():
+
+    status = request.args.get("status")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    orders_query = Order.query
+
+    if status:
+        orders_query = orders_query.filter_by(status=status)
+
+    if start_date and end_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        orders_query = orders_query.filter(
+            Order.order_date.between(start, end)
+        )
+
+    orders = orders_query.order_by(Order.order_date.desc()).all()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("<b>CommerceIQ AI - Orders Report</b>", styles["Title"]))
+    elements.append(Spacer(1, 20))
+
+    data = [["Order ID", "User", "Date", "Status", "Amount (Rs)"]]
+
+    for order in orders:
+        user = User.query.get(order.user_id)
+        data.append([
+            str(order.order_id),
+            user.username if user else "N/A",
+            order.order_date.strftime("%d %b %Y"),
+            order.status,
+            f"{order.total_amount:.2f}"
+        ])
+
+    table = Table(data)
+    table.setStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+    ])
+
+    elements.append(table)
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="Orders_Report.pdf",
+        mimetype="application/pdf"
+    )
+
+
 @main.route("/admin/sales")
 @login_required
 @admin_required

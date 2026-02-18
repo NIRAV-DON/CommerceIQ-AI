@@ -2,6 +2,9 @@
 {% block content %}
 
 <div class="admin-dashboard">
+  
+
+
 
   <!-- TOP STATS -->
  <div class="stats-grid">
@@ -25,69 +28,65 @@
         <h4>Total Orders</h4>
         <p>{{ total_orders }}</p>
     </a>
-
     <!-- TOTAL SALES -->
-    <div class="dashboard-card clickable">
-    <a href="{{ url_for('main.admin_orders') }}">
-        <h4>Total Orders</h4>
-        <p>{{ total_orders }}</p>
+    <a href="{{ url_for('main.admin_sales') }}" class="dash-card purple">
+        <h4>Total Sales</h4>
+        <p>{{ total_sales}}</p>
     </a>
-</div>
-
-
-
 
     <!-- LOW STOCK -->
-    <a href="{{ url_for('main.admin_products') }}" class="dash-card red">
+    <a href="{{ url_for('main.admin_low_stock') }}" class="dash-card red">
         <h4>Low Stock</h4>
         <p>{{ low_stock_products }}</p>
     </a>
-
     <!-- ❌ CANCELLED ORDERS -->
     <a href="{{ url_for('main.admin_cancelled_orders') }}" class="dash-card pink">
         <h4>Cancelled Orders</h4>
         <p>{{ cancelled_orders }}</p>
     </a>
-
+    </div>
 </div>
 
 
   <!-- AI FORECAST -->
-  <div class="chart-box">
-    <h2>AI Sales Forecast (Next 30 Days)</h2>
-    <canvas id="forecastChart"></canvas>
-  </div>
+ <div class="chart-box">
+    <h3>Sales Analytics (Last 7 Days)</h3>
 
+    <canvas id="salesChart"></canvas>
 </div>
 
-<!-- Chart JS -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const forecastData = {{ forecast_data | tojson | safe }};
+const ctx = document.getElementById('salesChart');
 
-  const labels = forecastData.map(d => d.date);
-  const values = forecastData.map(d => d.predicted_sales);
-
-  new Chart(document.getElementById("forecastChart"), {
-    type: "line",
+new Chart(ctx, {
+    type: 'line',
     data: {
-      labels: labels,
-      datasets: [{
-        label: "Predicted Sales",
-        data: values,
-        borderColor: "#2563eb",
-        backgroundColor: "rgba(37,99,235,0.2)",
-        tension: 0.4,
-        fill: true
-      }]
+        labels: {{ chart_labels | tojson }},
+        datasets: [
+            {
+                label: 'Revenue (Rs)',
+                data: {{ chart_sales | tojson }},
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                tension: 0.4
+            },
+            {
+                label: 'Orders Count',
+                data: {{ chart_orders | tojson }},
+                borderColor: '#22c55e',
+                backgroundColor: 'rgba(34,197,94,0.1)',
+                tension: 0.4
+            }
+        ]
     },
     options: {
-      responsive: true,
-      plugins: {
-        legend: { display: true }
-      }
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' }
+        }
     }
-  });
+});
 </script>
+
 
 {% endblock %}

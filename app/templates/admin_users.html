@@ -3,6 +3,26 @@
 {% block content %}
 <div class="container">
     <h2>All Users</h2>
+   
+
+<form method="GET" style="margin-bottom:20px;">
+    <label>From:</label>
+    <input type="date" name="start_date" value="{{ start_date }}">
+
+    <label>To:</label>
+    <input type="date" name="end_date" value="{{ end_date }}">
+
+    <button type="submit" class="btn">Filter</button>
+
+    <a href="{{ url_for('main.admin_users') }}" class="btn">Reset</a>
+</form>
+
+<a href="{{ url_for('main.users_pdf', start_date=start_date, end_date=end_date) }}"
+   class="btn"
+   style="margin-bottom:15px;">
+   Download PDF
+</a>
+
 
     <table border="1" cellpadding="10" cellspacing="0" width="100%">
         <tr>
