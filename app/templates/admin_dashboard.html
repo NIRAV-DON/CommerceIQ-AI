@@ -27,10 +27,15 @@
     </a>
 
     <!-- TOTAL SALES -->
-    <div class="dash-card purple" class="dash-card purple">
-        <h4>Total Sales</h4>
-        <p>₹ {{ total_sales }}</p>
-    </div>
+    <div class="dashboard-card clickable">
+    <a href="{{ url_for('main.admin_orders') }}">
+        <h4>Total Orders</h4>
+        <p>{{ total_orders }}</p>
+    </a>
+</div>
+
+
+
 
     <!-- LOW STOCK -->
     <a href="{{ url_for('main.admin_products') }}" class="dash-card red">

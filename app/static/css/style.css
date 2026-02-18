@@ -838,4 +838,23 @@ table {
 .purple { border-top-color: #8b5cf6; }
 .red    { border-top-color: #ef4444; }
 .pink   { border-top-color: #ec4899; background:#fff5f7; }
+.dashboard-card {
+    background: #1e1e2f;
+    padding: 20px;
+    border-radius: 12px;
+    color: white;
+    transition: 0.3s;
+}
+
+.dashboard-card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;          /* 🔥 KEY FIX */
+    height: 100%;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
 
