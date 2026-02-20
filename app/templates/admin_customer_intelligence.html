@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="dashboard-container">
+
+    <h2>🧠 Customer Intelligence</h2>
+
+   <div class="dashboard-cards">
+
+    <a href="{{ url_for('main.admin_customer_intelligence', type='vip') }}" class="dash-card green">
+        <h4>VIP Customers</h4>
+        <p>{{ vip_customers|length }}</p>
+    </a>
+
+    <a href="{{ url_for('main.admin_customer_intelligence', type='regular') }}" class="dash-card yellow">
+        <h4>Regular Customers</h4>
+        <p>{{ regular_customers|length }}</p>
+    </a>
+
+    <a href="{{ url_for('main.admin_customer_intelligence', type='inactive') }}" class="dash-card red">
+        <h4>Inactive Customers</h4>
+        <p>{{ inactive_customers|length }}</p>
+    </a>
+
+</div>
+{% if display_list %}
+
+<div class="chart-box">
+    <h3 style="margin-bottom:15px;">
+        {{ filter_type|capitalize }} Customers
+    </h3>
+
+    <table style="width:100%; border-collapse:collapse;">
+        <tr style="background:#f3f4f6;">
+            <th style="padding:10px;">Username</th>
+            <th>Email</th>
+            <th>Total Spent</th>
+        </tr>
+
+        {% for customer, spent in display_list %}
+        <tr style="text-align:center; border-bottom:1px solid #ddd;">
+            <td style="padding:10px;">{{ customer.username }}</td>
+            <td>{{ customer.email }}</td>
+            <td>₹{{ spent }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endif %}
+
+    
+</div>
+<div class="chart-box" style="margin-top:30px;">
+
+    <h3>🔮 Likely To Reorder Soon</h3>
+
+    {% if predicted_customers %}
+    <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+        <tr style="background:#f3f4f6;">
+            <th style="padding:10px;">Username</th>
+            <th>Avg Order Gap (Days)</th>
+            <th>Days Since Last Order</th>
+        </tr>
+
+        {% for item in predicted_customers %}
+        <tr style="text-align:center; border-bottom:1px solid #ddd;">
+            <td style="padding:10px;">{{ item.customer.username }}</td>
+            <td>{{ item.avg_gap }}</td>
+            <td>{{ item.days_since_last_order }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p style="margin-top:10px;">No customers predicted to reorder soon.</p>
+    {% endif %}
+
+</div>
+<div class="chart-box" style="margin-top:30px;">
+    <h3>💰 Customer Lifetime Value (Top 5)</h3>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+        <tr style="background:#f3f4f6;">
+            <th style="padding:10px;">Username</th>
+            <th>Total Orders</th>
+            <th>CLV (₹)</th>
+        </tr>
+
+        {% for item in clv_data %}
+        <tr style="text-align:center; border-bottom:1px solid #ddd;">
+            <td style="padding:10px;">{{ item.customer.username }}</td>
+            <td>{{ item.total_orders }}</td>
+            <td>{{ item.clv }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+<div class="chart-box" style="margin-top:30px;">
+    <h3>🔴 Potential Churn Risk Customers</h3>
+
+    {% if churn_risk_customers %}
+        <ul style="margin-top:15px;">
+            {% for customer in churn_risk_customers %}
+                <li>{{ customer.username }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p style="margin-top:10px;">No churn risk detected.</p>
+    {% endif %}
+</div>
+
+<div class="chart-box" style="margin-top:30px;">
+    <h3>🎁 Smart Coupon Recommendations</h3>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+        <tr style="background:#f3f4f6;">
+            <th style="padding:10px;">Username</th>
+            <th>CLV (₹)</th>
+            <th>Recommended Coupon</th>
+        </tr>
+
+        {% for item in coupon_recommendations %}
+        <tr style="text-align:center; border-bottom:1px solid #ddd;">
+            <td style="padding:10px;">{{ item.customer.username }}</td>
+            <td>
+            <div style="font-weight:bold;">{{ item.coupon_code }}</div>
+            <div style="margin-top:5px;">
+                <a href="{{ url_for('main.send_coupon', user_id=item.customer.user_id, coupon_code=item.coupon_code) }}"
+                class="btn"
+                style="padding:4px 10px; font-size:12px;">
+                Send Coupon
+                </a>
+            </div>
+        </td>
+            <td>
+                {% if "20%" in item.coupon %}
+                    <span style="color:red; font-weight:bold;">
+                        {{ item.coupon }}
+                    </span>
+                {% elif "15%" in item.coupon %}
+                    <span style="color:orange; font-weight:bold;">
+                        {{ item.coupon }}
+                    </span>
+                {% else %}
+                    <span style="color:green;">
+                        {{ item.coupon }}
+                    </span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+   
+{% endblock %}

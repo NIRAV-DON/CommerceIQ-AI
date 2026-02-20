@@ -2,7 +2,15 @@
     {% block content %}
 
     <div class="admin-dashboard">
-    
+   {% if alert_message %}
+<div class="alert-banner">
+    ⚠ {{ alert_message }}
+    <a href="{{ url_for('main.admin_ai_insights', type='high') }}">
+        View High Risk Products
+    </a>
+</div>
+{% endif %}
+
 
 
 
@@ -49,11 +57,15 @@
     <p>View Intelligence</p>
 </a>
     {% if high_risk_count > 0 %}
-<a href="{{ url_for('main.admin_ai_insights') }}" class="dash-card red">
+<a href="{{ url_for('main.admin_ai_insights', type='high') }}" class="dash-card red">
     <h4>🚨 High Risk Products</h4>
     <p>{{ high_risk_count }}</p>
 </a>
 {% endif %}
+<a href="{{ url_for('main.admin_customer_intelligence') }}" class="dash-card blue">
+    <h4>Customer Intelligence</h4>
+    <p>View Segmentation</p>
+</a>
 
         </div>
     </div>

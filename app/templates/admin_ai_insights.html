@@ -3,7 +3,13 @@
 
 <div class="dashboard-container">
 
-    <h2>🤖 AI Stock Risk Prediction</h2>
+   <h2>
+{% if filter_type == 'high' %}
+🚨 High Risk Products
+{% else %}
+🤖 AI Stock Risk Prediction
+{% endif %}
+</h2>
 
     <div class="chart-box">
 

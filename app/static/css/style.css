@@ -980,3 +980,28 @@ table {
     border-radius: 6px;
     border: 1px solid #ccc;
 }
+/* ==============================
+   🚨 ALERT PULSE ANIMATION
+   ============================== */
+
+.alert-banner {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220,38,38,0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(220,38,38,0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220,38,38,0);
+    }
+}

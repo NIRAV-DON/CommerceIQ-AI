@@ -16,6 +16,7 @@ from datetime import datetime
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
+
 # Blueprint
 main = Blueprint('main', __name__)
 
@@ -672,6 +673,19 @@ def admin_dashboard():
             if days_left <= 5:
                 high_risk_count += 1
 
+    # ==============================
+    # 🚨 SMART ALERT MESSAGE
+    # ==============================
+
+    alert_message = None
+
+    if high_risk_count > 0:
+        alert_message = (
+            f"{high_risk_count} product(s) may run out of stock within 5 days. "
+            "Immediate action recommended."
+        )
+     
+
     return render_template(
         "admin_dashboard.html",
         total_products=total_products,
@@ -689,6 +703,7 @@ def admin_dashboard():
         forecast_labels=forecast_labels,
         forecast_values=forecast_values,
         high_risk_count=high_risk_count,
+        alert_message=alert_message
 
      )
 @main.route("/admin/analytics")
@@ -1219,13 +1234,11 @@ def admin_category_analytics():
 @admin_required
 def admin_ai_insights():
 
-    # ==============================
-    # 🤖 STOCK RISK PREDICTION
-    # ==============================
+    # 🔥 IMPORTANT — DEFINE FILTER
+    filter_type = request.args.get("type")
 
     risk_products = []
 
-    # Get last 30 days sales per product
     last_30_days = datetime.now() - timedelta(days=30)
 
     product_sales = db.session.query(
@@ -1247,21 +1260,33 @@ def admin_ai_insights():
 
         avg_daily_sales = total_sold / 30 if total_sold > 0 else 0
 
-        if avg_daily_sales > 0:
-            days_left = round(stock / avg_daily_sales, 1)
-        else:
-            days_left = "No sales"
+        # ==============================
+        # ✅  RISK CLASSIFICATION
+        # ==============================
 
-        # Risk Classification
-        if isinstance(days_left, float):
+        if stock == 0:
+            risk = "High"
+            days_left = 0
+
+        elif avg_daily_sales == 0:
+            risk = "Low"
+            days_left = "No Sales"
+
+        else:
+            days_left = round(stock / avg_daily_sales, 1)
+
             if days_left <= 5:
                 risk = "High"
             elif days_left <= 15:
                 risk = "Medium"
             else:
                 risk = "Low"
-        else:
-            risk = "Low"
+
+       
+
+        # 🔥 APPLY FILTER AFTER RISK CALCULATION
+        if filter_type == "high" and risk != "High":
+            continue
 
         risk_products.append({
             "name": name,
@@ -1273,5 +1298,180 @@ def admin_ai_insights():
 
     return render_template(
         "admin_ai_insights.html",
-        risk_products=risk_products
+        risk_products=risk_products,
+        filter_type=filter_type,
     )
+
+@main.route("/admin/customer-intelligence")
+@login_required
+@admin_required
+def admin_customer_intelligence():
+
+    import random   
+    import string
+
+    filter_type = request.args.get("type")
+
+    customers = User.query.filter_by(role="customer").all()
+
+    vip_customers = []
+    regular_customers = []
+    inactive_customers = []
+
+    last_30_days = datetime.now() - timedelta(days=30)
+
+    for customer in customers:
+
+        orders = Order.query.filter_by(user_id=customer.user_id).all()
+        total_spent = sum(order.total_amount for order in orders)
+
+        last_order = Order.query.filter_by(user_id=customer.user_id) \
+            .order_by(Order.order_date.desc()).first()
+
+        if total_spent >= 50000:
+            category = "vip"
+            vip_customers.append((customer, total_spent))
+
+        elif not last_order or last_order.order_date < last_30_days:
+            category = "inactive"
+            inactive_customers.append((customer, total_spent))
+
+        else:
+            category = "regular"
+            regular_customers.append((customer, total_spent))
+
+    # Filter logic
+    if filter_type == "vip":
+        display_list = vip_customers
+    elif filter_type == "inactive":
+        display_list = inactive_customers
+    elif filter_type == "regular":
+        display_list = regular_customers
+    else:
+        display_list = None
+
+    predicted_customers = []
+
+    for customer in customers:
+
+        user_orders = Order.query.filter_by(user_id=customer.user_id) \
+            .order_by(Order.order_date.asc()).all()
+
+        if len(user_orders) >= 3:
+
+            gaps = []
+            for i in range(1, len(user_orders)):
+                gap = (user_orders[i].order_date - user_orders[i-1].order_date).days
+                gaps.append(gap)
+
+            avg_gap = sum(gaps) / len(gaps)
+
+            last_order_date = user_orders[-1].order_date
+            days_since_last_order = (datetime.now() - last_order_date).days
+
+            # Prediction rule
+            if days_since_last_order >= avg_gap * 0.8:
+                predicted_customers.append({
+                    "customer": customer,
+                    "avg_gap": round(avg_gap, 1),
+                    "days_since_last_order": days_since_last_order
+                })
+    churn_risk_customers = []
+    clv_data = []
+
+    for customer in customers:
+
+        user_orders = Order.query.filter_by(user_id=customer.user_id) \
+            .order_by(Order.order_date.asc()).all()
+
+        total_orders = len(user_orders)
+
+        if total_orders == 0:
+            continue
+
+        total_spent = sum(order.total_amount for order in user_orders)
+        avg_order_value = total_spent / total_orders
+
+        clv = round(avg_order_value * total_orders, 2)
+
+        clv_data.append({
+            "customer": customer,
+            "clv": clv,
+            "total_orders": total_orders
+        })
+        
+        # Sort and take top 5 here (NOT in template)
+        clv_data = sorted(clv_data, key=lambda x: x["clv"], reverse=True)[:5]
+
+        # 🔴 Churn Risk Logic
+        if total_orders >= 2:
+
+            gaps = []
+            for i in range(1, total_orders):
+                gap = (user_orders[i].order_date - user_orders[i-1].order_date).days
+                gaps.append(gap)
+
+            avg_gap = sum(gaps) / len(gaps)
+
+            last_order_date = user_orders[-1].order_date
+            days_since_last = (datetime.now() - last_order_date).days
+
+            if days_since_last > avg_gap * 2:
+                churn_risk_customers.append(customer)
+
+    coupon_recommendations = []
+
+    for item in clv_data:
+
+        customer = item["customer"]
+        clv = item["clv"]
+
+        coupon_percent = 5
+
+        if clv > 10000:
+            coupon_percent = 20
+        elif clv > 5000:
+            coupon_percent = 15
+        elif clv > 2000:
+            coupon_percent = 10
+
+        if customer in churn_risk_customers:
+                coupon_percent = 20
+
+                # 🔥 Generate random coupon code
+                random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+                coupon_code = f"AI{coupon_percent}{random_part}"
+
+                coupon_recommendations.append({
+                    "customer": customer,
+                    "clv": clv,
+                    "coupon_percent": coupon_percent,
+                    "coupon_code": coupon_code,
+                    "sent": False
+                })
+
+    return render_template(
+        "admin_customer_intelligence.html",
+        vip_customers=vip_customers,
+        regular_customers=regular_customers,
+        inactive_customers=inactive_customers,
+        display_list=display_list,
+        filter_type=filter_type,
+        predicted_customers=predicted_customers,
+        churn_risk_customers=churn_risk_customers,
+        clv_data=clv_data,
+        coupon_recommendations=coupon_recommendations
+    )
+@main.route("/admin/send-coupon/<int:user_id>/<coupon_code>")
+@login_required
+@admin_required
+def send_coupon(user_id, coupon_code):
+
+    user = User.query.get_or_404(user_id)
+
+    # 🔥 Simulated email sending
+    print(f"Sending coupon {coupon_code} to {user.email}")
+
+    flash(f"Coupon {coupon_code} sent to {user.username} successfully!", "success")
+
+    return redirect(url_for("main.admin_customer_intelligence"))
