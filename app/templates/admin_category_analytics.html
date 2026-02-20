@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+    <h2>📊 Category Sales Analytics</h2>
+
+    {% if category_data %}
+    <table border="1" cellpadding="10" cellspacing="0" width="100%">
+        <tr>
+            <th>Category</th>
+            <th>Total Sold</th>
+            <th>Total Revenue</th>
+        </tr>
+
+        {% for row in category_data %}
+        <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>₹ {{ row[2] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% else %}
+        <p>No category data available.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

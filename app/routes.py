@@ -536,9 +536,58 @@ def admin_dashboard():
 
     cancelled_orders = Order.query.filter_by(status="Cancelled").count()
 
-    # 🔥 LAST 7 DAYS SALES
-    last_7_days = datetime.now() - timedelta(days=7)
+    # 🏆 MOST SOLD PRODUCT
+    
+    most_sold = db.session.query(
+    Product.product_id,
+    Product.name,
+    func.sum(OrderItem.quantity).label("total_qty")
+    ).join(OrderItem, Product.product_id == OrderItem.product_id) \
+    .group_by(Product.product_id) \
+    .order_by(func.sum(OrderItem.quantity).desc()) \
+    .first()
 
+    if most_sold:
+        most_sold_id = most_sold[0]
+        most_sold_product = most_sold[1]
+        most_sold_qty = most_sold[2]
+    else:
+        most_sold_id = None
+        most_sold_product = "No Data"
+        most_sold_qty = 0
+
+
+    # 📈 SALES GROWTH
+    today = datetime.now()
+    last_7_days = today - timedelta(days=7)
+    previous_7_days = today - timedelta(days=14)
+
+    current_sales = db.session.query(
+        func.sum(Order.total_amount)
+    ).filter(
+        Order.order_date >= last_7_days
+    ).scalar() or 0
+
+    previous_sales = db.session.query(
+        func.sum(Order.total_amount)
+    ).filter(
+        Order.order_date >= previous_7_days,
+        Order.order_date < last_7_days
+    ).scalar() or 0
+
+    sales_growth = 0
+    if previous_sales > 0:
+        sales_growth = round(
+            ((current_sales - previous_sales) / previous_sales) * 100,
+            2
+        )
+
+    # ⚠️ LOW STOCK COUNT
+    low_stock_products = Product.query.filter(
+        Product.stock_quantity <= 5
+    ).count()
+
+    # 📊 LAST 7 DAYS CHART
     sales_data = db.session.query(
         func.date(Order.order_date),
         func.sum(Order.total_amount),
@@ -549,7 +598,6 @@ def admin_dashboard():
         func.date(Order.order_date)
     ).all()
 
-    # Prepare chart data
     chart_labels = []
     chart_sales = []
     chart_orders = []
@@ -559,6 +607,71 @@ def admin_dashboard():
         chart_sales.append(float(row[1]))
         chart_orders.append(row[2])
 
+    # ==============================
+    # 📈 SALES FORECAST (Next 7 Days)
+    # ==============================
+
+    last_30_days = datetime.now() - timedelta(days=30)
+
+    sales_last_30 = db.session.query(
+        func.date(Order.order_date),
+        func.sum(Order.total_amount)
+    ).filter(
+        Order.order_date >= last_30_days
+    ).group_by(
+        func.date(Order.order_date)
+    ).all()
+
+    daily_sales = [float(row[1]) for row in sales_last_30]
+
+    forecast_labels = []
+    forecast_values = []
+
+    if daily_sales:
+        avg_daily_sales = sum(daily_sales) / len(daily_sales)
+
+        for i in range(1, 8):
+            future_date = datetime.now() + timedelta(days=i)
+            forecast_labels.append(future_date.strftime("%d %b"))
+            forecast_values.append(round(avg_daily_sales * 1.05, 2))  # 5% growth assumption
+    # 🔮 SIMPLE FORECAST (demo growth)
+    forecast_labels = []
+    forecast_values = []
+
+    if chart_sales:
+        last_value = chart_sales[-1]
+        for i in range(1, 6):
+            forecast_labels.append(f"F{i}")
+            forecast_values.append(round(last_value * (1 + 0.05 * i), 2))
+
+    # ==============================
+    # 🚨 HIGH RISK STOCK CHECK
+    # ==============================
+
+    high_risk_count = 0
+
+    last_30_days = datetime.now() - timedelta(days=30)
+
+    all_products = Product.query.all()
+
+    for product in all_products:
+
+        total_sold = db.session.query(
+            func.sum(OrderItem.quantity)
+        ).join(Order, Order.order_id == OrderItem.order_id) \
+        .filter(
+            OrderItem.product_id == product.product_id,
+            Order.order_date >= last_30_days
+        ).scalar() or 0
+
+        avg_daily_sales = total_sold / 30 if total_sold > 0 else 0
+
+        if avg_daily_sales > 0:
+            days_left = product.stock_quantity / avg_daily_sales
+
+            if days_left <= 5:
+                high_risk_count += 1
+
     return render_template(
         "admin_dashboard.html",
         total_products=total_products,
@@ -566,10 +679,97 @@ def admin_dashboard():
         total_users=total_users,
         total_sales=total_sales,
         cancelled_orders=cancelled_orders,
+        low_stock_products=low_stock_products,
+        most_sold_product=most_sold_product,
+        most_sold_id=most_sold_id,
+        sales_growth=sales_growth,
+        chart_labels=chart_labels,
+        chart_sales=chart_sales,
+        chart_orders=chart_orders,
+        forecast_labels=forecast_labels,
+        forecast_values=forecast_values,
+        high_risk_count=high_risk_count,
+
+     )
+@main.route("/admin/analytics")
+@login_required
+@admin_required
+def admin_analytics():
+
+    total_products = Product.query.count()
+    total_orders = Order.query.count()
+
+    total_sales = db.session.query(
+        func.sum(Order.total_amount)
+    ).scalar() or 0
+
+    # ==============================
+    # 📈 SALES GROWTH
+    # ==============================
+    today = datetime.now()
+    last_7_days = today - timedelta(days=7)
+    previous_7_days = today - timedelta(days=14)
+
+    current_sales = db.session.query(
+        func.sum(Order.total_amount)
+    ).filter(Order.order_date >= last_7_days).scalar() or 0
+
+    previous_sales = db.session.query(
+        func.sum(Order.total_amount)
+    ).filter(
+        Order.order_date >= previous_7_days,
+        Order.order_date < last_7_days
+    ).scalar() or 0
+
+    sales_growth = 0
+    if previous_sales > 0:
+        sales_growth = round(
+            ((current_sales - previous_sales) / previous_sales) * 100, 2
+        )
+
+    # ==============================
+    # 📊 DAILY AVG + PEAK DAY
+    # ==============================
+    sales_data = db.session.query(
+        func.date(Order.order_date),
+        func.sum(Order.total_amount),
+        func.count(Order.order_id)
+    ).group_by(func.date(Order.order_date)).all()
+
+    chart_labels = []
+    chart_sales = []
+    chart_orders = []
+
+    peak_day = "No Data"
+    max_sale = 0
+
+    for row in sales_data:
+        chart_labels.append(row[0].strftime("%d %b"))
+        chart_sales.append(float(row[1]))
+        chart_orders.append(row[2])
+
+        if row[1] > max_sale:
+            max_sale = row[1]
+            peak_day = row[0].strftime("%d %b")
+
+    daily_avg_sales = 0
+    if chart_sales:
+        daily_avg_sales = round(sum(chart_sales) / len(chart_sales), 2)
+
+    return render_template(
+        "admin_analytics.html",
+        total_products=total_products,
+        total_orders=total_orders,
+        total_sales=total_sales,
+        sales_growth=sales_growth,
+        daily_avg_sales=daily_avg_sales,
+        peak_day=peak_day,
         chart_labels=chart_labels,
         chart_sales=chart_sales,
         chart_orders=chart_orders
     )
+
+
 @main.route("/admin/report/users")
 @login_required
 @admin_required
@@ -769,6 +969,28 @@ def users_pdf():
         mimetype="application/pdf"
     )
 
+@main.route("/admin/top-products")
+@login_required
+@admin_required
+def admin_top_products():
+
+    top_products = db.session.query(
+        Product.product_id,
+        Product.name,
+        Product.stock_quantity,
+        func.sum(OrderItem.quantity).label("total_sold")
+    ).join(
+        OrderItem, Product.product_id == OrderItem.product_id
+    ).group_by(
+        Product.product_id
+    ).order_by(
+        func.sum(OrderItem.quantity).desc()
+    ).all()
+
+    return render_template(
+        "admin_top_products.html",
+        top_products=top_products
+    )
 
 
 # -------------------- PROFILE --------------------
@@ -974,4 +1196,82 @@ def admin_cancelled_orders():
         "admin_cancelled_orders.html",
         orders=cancelled_orders
     )
+@main.route("/admin/category-analytics")
+@login_required
+@admin_required
+def admin_category_analytics():
 
+    category_data = db.session.query(
+        Product.category,
+        func.count(Product.product_id),
+        func.sum(OrderItem.quantity * OrderItem.price_per_unit)
+    ).join(OrderItem, Product.product_id == OrderItem.product_id) \
+     .group_by(Product.category).all()
+
+    return render_template(
+        "admin_category_analytics.html",
+        category_data=category_data
+    )
+
+
+@main.route("/admin/ai-insights")
+@login_required
+@admin_required
+def admin_ai_insights():
+
+    # ==============================
+    # 🤖 STOCK RISK PREDICTION
+    # ==============================
+
+    risk_products = []
+
+    # Get last 30 days sales per product
+    last_30_days = datetime.now() - timedelta(days=30)
+
+    product_sales = db.session.query(
+        Product.product_id,
+        Product.name,
+        Product.stock_quantity,
+        func.sum(OrderItem.quantity).label("total_sold")
+    ).join(OrderItem, Product.product_id == OrderItem.product_id) \
+     .join(Order, Order.order_id == OrderItem.order_id) \
+     .filter(Order.order_date >= last_30_days) \
+     .group_by(Product.product_id).all()
+
+    for product in product_sales:
+
+        product_id = product[0]
+        name = product[1]
+        stock = product[2]
+        total_sold = product[3] or 0
+
+        avg_daily_sales = total_sold / 30 if total_sold > 0 else 0
+
+        if avg_daily_sales > 0:
+            days_left = round(stock / avg_daily_sales, 1)
+        else:
+            days_left = "No sales"
+
+        # Risk Classification
+        if isinstance(days_left, float):
+            if days_left <= 5:
+                risk = "High"
+            elif days_left <= 15:
+                risk = "Medium"
+            else:
+                risk = "Low"
+        else:
+            risk = "Low"
+
+        risk_products.append({
+            "name": name,
+            "stock": stock,
+            "avg_daily_sales": round(avg_daily_sales, 2),
+            "days_left": days_left,
+            "risk": risk
+        })
+
+    return render_template(
+        "admin_ai_insights.html",
+        risk_products=risk_products
+    )

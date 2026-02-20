@@ -1,92 +1,117 @@
-{% extends "layout.html" %}
-{% block content %}
+    {% extends "layout.html" %}
+    {% block content %}
 
-<div class="admin-dashboard">
-  
+    <div class="admin-dashboard">
+    
 
 
 
-  <!-- TOP STATS -->
- <div class="stats-grid">
+    <!-- TOP STATS -->
+    <div class="stats-grid">
 
-    <div class="dashboard-cards">
+        <div class="dashboard-cards">
 
-    <!-- TOTAL USERS -->
-    <a href="{{ url_for('main.admin_users') }}" class="dash-card blue">
-        <h4>Total Users</h4>
-        <p>{{ total_users }}</p>
-    </a>
+        <!-- TOTAL USERS -->
+        <a href="{{ url_for('main.admin_users') }}" class="dash-card blue">
+            <h4>Total Users</h4>
+            <p>{{ total_users }}</p>
+        </a>
 
-    <!-- TOTAL PRODUCTS -->
-    <a href="{{ url_for('main.admin_products') }}" class="dash-card green">
-        <h4>Total Products</h4>
-        <p>{{ total_products }}</p>
-    </a>
+        <!-- TOTAL PRODUCTS -->
+        <a href="{{ url_for('main.admin_products') }}" class="dash-card green">
+            <h4>Total Products</h4>
+            <p>{{ total_products }}</p>
+        </a>
 
-    <!-- TOTAL ORDERS -->
-    <a href="{{ url_for('main.admin_orders') }}" class="dash-card yellow">
-        <h4>Total Orders</h4>
-        <p>{{ total_orders }}</p>
-    </a>
-    <!-- TOTAL SALES -->
-    <a href="{{ url_for('main.admin_sales') }}" class="dash-card purple">
-        <h4>Total Sales</h4>
-        <p>{{ total_sales}}</p>
-    </a>
+        <!-- TOTAL ORDERS -->
+        <a href="{{ url_for('main.admin_orders') }}" class="dash-card yellow">
+            <h4>Total Orders</h4>
+            <p>{{ total_orders }}</p>
+        </a>
+        <!-- TOTAL SALES -->
+        <a href="{{ url_for('main.admin_sales') }}" class="dash-card purple">
+            <h4>Total Sales</h4>
+            <p>{{ total_sales}}</p>
+        </a>
 
-    <!-- LOW STOCK -->
-    <a href="{{ url_for('main.admin_low_stock') }}" class="dash-card red">
-        <h4>Low Stock</h4>
-        <p>{{ low_stock_products }}</p>
-    </a>
-    <!-- ❌ CANCELLED ORDERS -->
-    <a href="{{ url_for('main.admin_cancelled_orders') }}" class="dash-card pink">
-        <h4>Cancelled Orders</h4>
-        <p>{{ cancelled_orders }}</p>
-    </a>
+        <!-- LOW STOCK -->
+        <a href="{{ url_for('main.admin_low_stock') }}" class="dash-card red">
+            <h4>Low Stock</h4>
+            <p>{{ low_stock_products }}</p>
+        </a>
+        <!-- ❌ CANCELLED ORDERS -->
+        <a href="{{ url_for('main.admin_cancelled_orders') }}" class="dash-card pink">
+            <h4>Cancelled Orders</h4>
+            <p>{{ cancelled_orders }}</p>
+        </a>
+        <a href="{{ url_for('main.admin_analytics') }}" class="dash-card pink">
+    <h4>Analytics</h4>
+    <p>View Intelligence</p>
+</a>
+    {% if high_risk_count > 0 %}
+<a href="{{ url_for('main.admin_ai_insights') }}" class="dash-card red">
+    <h4>🚨 High Risk Products</h4>
+    <p>{{ high_risk_count }}</p>
+</a>
+{% endif %}
+
+        </div>
     </div>
-</div>
 
 
-  <!-- AI FORECAST -->
- <div class="chart-box">
-    <h3>Sales Analytics (Last 7 Days)</h3>
 
-    <canvas id="salesChart"></canvas>
-</div>
+    <!-- AI FORECAST -->
+    <div class="chart-box">
+        <h3>Sales Analytics (Last 7 Days)</h3>
+
+        <canvas id="salesChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
 <script>
-const ctx = document.getElementById('salesChart');
+document.addEventListener("DOMContentLoaded", function() {
 
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: {{ chart_labels | tojson }},
-        datasets: [
-            {
-                label: 'Revenue (Rs)',
-                data: {{ chart_sales | tojson }},
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59,130,246,0.1)',
-                tension: 0.4
-            },
-            {
-                label: 'Orders Count',
-                data: {{ chart_orders | tojson }},
-                borderColor: '#22c55e',
-                backgroundColor: 'rgba(34,197,94,0.1)',
-                tension: 0.4
+    const labels = {{ chart_labels | tojson }};
+    const forecastLabels = {{ forecast_labels | tojson }};
+    const salesData = {{ chart_sales | tojson }};
+    const forecastData = {{ forecast_values | tojson }};
+
+    const ctx = document.getElementById('salesChart');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels.concat(forecastLabels),
+            datasets: [
+                {
+                    label: 'Actual Sales',
+                    data: salesData.concat(Array(forecastData.length).fill(null)),
+                    borderColor: '#3b82f6',
+                    tension: 0.4
+                },
+                {
+                    label: 'Forecast (AI)',
+                    data: Array(salesData.length).fill(null).concat(forecastData),
+                    borderColor: '#10b981',
+                    borderDash: [6, 6],
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
             }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'top' }
         }
-    }
+    });
+
 });
 </script>
 
 
-{% endblock %}
+    {% endblock %}

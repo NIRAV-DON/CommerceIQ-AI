@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="dashboard-container">
+
+    <h2>🤖 AI Stock Risk Prediction</h2>
+
+    <div class="chart-box">
+
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="background:#f3f4f6;">
+                    <th style="padding:10px;">Product</th>
+                    <th>Stock</th>
+                    <th>Avg Daily Sales</th>
+                    <th>Days Left</th>
+                    <th>Risk Level</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for p in risk_products %}
+                <tr style="text-align:center; border-bottom:1px solid #ddd;">
+                    <td style="padding:10px;">{{ p.name }}</td>
+                    <td>{{ p.stock }}</td>
+                    <td>{{ p.avg_daily_sales }}</td>
+                    <td>{{ p.days_left }}</td>
+                    <td>
+                        {% if p.risk == "High" %}
+                            <span style="color:red; font-weight:bold;">🔴 High</span>
+                        {% elif p.risk == "Medium" %}
+                            <span style="color:orange; font-weight:bold;">🟡 Medium</span>
+                        {% else %}
+                            <span style="color:green; font-weight:bold;">🟢 Low</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

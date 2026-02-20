@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+    <h2>🏆 Top Selling Products</h2>
+
+    {% if top_products %}
+    <table border="1" cellpadding="10" cellspacing="0" width="100%">
+        <tr>
+            <th>Rank</th>
+            <th>Product Name</th>
+            <th>Total Sold</th>
+            <th>Stock Remaining</th>
+        </tr>
+
+        {% for product in top_products %}
+        <tr>
+            <td>{{ loop.index }}</td>
+
+            <td>
+                <a href="{{ url_for('main.product_detail', product_id=product[0]) }}">
+                    {{ product[1] }}
+                </a>
+            </td>
+
+            <td>{{ product[3] }}</td>
+
+            <td>
+                {% if product[2] <= 5 %}
+                    <span style="color:red;font-weight:bold;">
+                        {{ product[2] }}
+                    </span>
+                {% else %}
+                    {{ product[2] }}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% else %}
+        <p>No sales data available.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

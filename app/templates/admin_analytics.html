@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="dashboard-container">
+
+    <h2>📊 Business Intelligence Dashboard</h2>
+
+    <!-- ================= KPI CARDS ================= -->
+    <div class="dashboard-cards">
+
+    <a href="{{ url_for('main.admin_sales') }}" class="dash-card yellow">
+        <h4>Sales Growth</h4>
+        <p>{{ sales_growth }}%</p>
+    </a>
+
+    <a href="{{ url_for('main.admin_sales') }}" class="dash-card green">
+        <h4>Daily Avg Sales</h4>
+        <p>₹{{ daily_avg_sales }}</p>
+    </a>
+
+    <a href="{{ url_for('main.admin_sales') }}" class="dash-card red">
+        <h4>Peak Sales Day</h4>
+        <p>{{ peak_day }}</p>
+    </a>
+
+    <a href="{{ url_for('main.admin_sales') }}" class="dash-card blue">
+        <h4>Total Revenue</h4>
+        <p>₹{{ total_sales }}</p>
+    </a>
+
+    <a href="{{ url_for('main.admin_orders') }}" class="dash-card purple">
+        <h4>Total Orders</h4>
+        <p>{{ total_orders }}</p>
+    </a>
+
+    <a href="{{ url_for('main.admin_ai_insights') }}" class="dash-card pink">
+        <h4>AI Business Insights</h4>
+        <p>AI Recommendation</p>
+    </a>
+
+</div>
+
+
+    <!-- ================= SALES CHART ================= -->
+    <div class="chart-box">
+        <h3>Sales & Orders Trend</h3>
+        <canvas id="analyticsChart"></canvas>
+    </div>
+
+   
+
+</div>
+    
+
+    
+    
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const ctx = document.getElementById('analyticsChart');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ chart_labels | tojson }},
+        datasets: [
+            {
+                label: 'Sales (₹)',
+                data: {{ chart_sales | tojson }},
+                borderWidth: 3,
+                tension: 0.3
+            },
+            {
+                label: 'Orders',
+                data: {{ chart_orders | tojson }},
+                borderWidth: 3,
+                tension: 0.3
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: true }
+        }
+    }
+});
+</script>
+
+{% endblock %}
