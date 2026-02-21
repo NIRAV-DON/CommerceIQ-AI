@@ -13,6 +13,7 @@
             <p><strong>Total:</strong> ₹{{ order.total_amount }}</p>
             <p><strong>Payment:</strong> {{ order.payment_method }}</p>
             <p><strong>City:</strong> {{ order.city }}</p>
+            <p><strong>Address:</strong> {{ order.shipping_address }}</p>
 
             <!-- 🚚 STATUS TEXT -->
             {% if order.status == 'Pending' %}

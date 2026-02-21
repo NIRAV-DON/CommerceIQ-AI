@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>🎁 My Coupons</h2>
+
+{% if coupons %}
+<table style="width:100%; margin-top:20px;">
+    <tr>
+        <th>Code</th>
+        <th>Discount</th>
+        <th>Expiry</th>
+    </tr>
+
+    {% for coupon in coupons %}
+    <tr>
+        <td>{{ coupon.code }}</td>
+        <td>{{ coupon.discount_percent }}%</td>
+        <td>{{ coupon.expiry_date.strftime("%d %b %Y") }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No active coupons available.</p>
+{% endif %}
+
+{% endblock %}

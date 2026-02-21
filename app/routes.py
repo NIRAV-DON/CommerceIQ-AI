@@ -1,7 +1,7 @@
 from flask import render_template, url_for, flash, redirect, request, Blueprint, session
 from . import db, bcrypt
 from .forms import RegistrationForm, LoginForm, ProductForm, ReviewForm
-from .models import User, Product, Order, OrderItem, Review
+from .models import Coupon, User, Product, Order, OrderItem, Review
 from flask_login import login_user, current_user, logout_user, login_required
 from functools import wraps
 from io import BytesIO
@@ -298,9 +298,13 @@ def download_invoice(order_id):
     # BILL TO
     # =============================
     elements.append(Paragraph("<b>Bill To:</b>", styles["Heading3"]))
-    elements.append(Paragraph(current_user.username, styles["Normal"]))
-    elements.append(Paragraph(current_user.email, styles["Normal"]))
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(f"<b>Name:</b> {current_user.username}", styles["Normal"]))
+    elements.append(Paragraph(f"<b>Email:</b> {current_user.email}", styles["Normal"]))
+    elements.append(Paragraph(f"<b>Address:</b> {order.shipping_address}", styles["Normal"]))
     elements.append(Spacer(1, 15))
+
+
 
     # =============================
     # ORDER INFO TABLE
@@ -440,7 +444,7 @@ def remove_from_cart(product_id):
     return redirect(url_for("main.cart"))
 
 # -------------------- CHECKOUT --------------------
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 @main.route("/checkout", methods=["GET", "POST"])
 @login_required
@@ -454,71 +458,186 @@ def checkout():
 
     total_price = 0
 
-    # ---------------- DELIVERY LOGIC ----------------
-    base_days = 5
-
-    payment_method = "COD"          # future ma form mathi aavse
-    city = "Ahmedabad"              # future ma address mathi aavse
-
-    if payment_method == "COD":
-        base_days += 2
-
-    metro_cities = ["Ahmedabad", "Mumbai", "Delhi", "Bangalore"]
-    if city in metro_cities:
-        base_days -= 1
-
-    estimated_delivery = date.today() + timedelta(days=base_days)
-    # ------------------------------------------------
-
-    # ✅ CREATE ORDER FIRST
-    order = Order(
-        user_id=current_user.user_id,
-        total_amount=0,
-        status="Pending",
-        shipping_address="123 Example Street",
-        payment_method=payment_method,
-        city=city,
-        estimated_delivery=estimated_delivery
-    )
-
-    db.session.add(order)
-    db.session.commit()   # 🔴 VERY IMPORTANT
-
-    # ✅ PROCESS EACH PRODUCT
+    # ---------------- CALCULATE TOTAL ----------------
     for product_id, quantity in cart.items():
-
         product = Product.query.get(int(product_id))
+        if product:
+            total_price += product.price * quantity
 
-        if not product or product.stock_quantity < quantity:
-            flash("Product out of stock!", "danger")
-            return redirect(url_for("main.cart"))
+    # ---------------- POST REQUEST ----------------
+    if request.method == "POST":
 
-        item_total = product.price * quantity
-        total_price += item_total
+        shipping_address = request.form.get("shipping_address")
+        coupon_code = request.form.get("coupon_code")
+        payment_method = request.form.get("payment_method")
 
-        # 🔻 DECREASE STOCK
-        product.stock_quantity -= quantity
+        if not shipping_address:
+            flash("Shipping address is required!", "danger")
+            return redirect(url_for("main.checkout"))
 
-        order_item = OrderItem(
-            order_id=order.order_id,
-            product_id=product.product_id,
-            quantity=quantity,
-            price_per_unit=product.price
+        discount_amount = 0
+
+        # ---------------- COUPON VALIDATION ----------------
+        if coupon_code:
+
+            coupon = Coupon.query.filter_by(
+                code=coupon_code,
+                user_id=current_user.user_id,
+                is_used=False
+            ).first()
+
+            if coupon:
+
+                if coupon.expiry_date and coupon.expiry_date < datetime.utcnow():
+                    flash("Coupon expired!", "danger")
+                    return redirect(url_for("main.checkout"))
+
+                discount_amount = (total_price * coupon.discount_percent) / 100
+                total_price -= discount_amount
+
+                coupon.is_used = True
+                db.session.commit()
+
+                flash(f"{coupon.discount_percent}% discount applied!", "success")
+
+            else:
+                flash("Invalid coupon code!", "danger")
+                return redirect(url_for("main.checkout"))
+
+        # ---------------- DELIVERY LOGIC ----------------
+        base_days = 5
+        city = "Ahmedabad"
+
+        if payment_method == "COD":
+            base_days += 2
+
+        metro_cities = ["Ahmedabad", "Mumbai", "Delhi", "Bangalore"]
+        if city in metro_cities:
+            base_days -= 1
+
+        estimated_delivery = date.today() + timedelta(days=base_days)
+
+        # ---------------- FAKE PAYMENT REDIRECT ----------------
+        if payment_method in ["UPI", "Card"]:
+
+            session["temp_order"] = {
+                "shipping_address": shipping_address,
+                "total_price": total_price,
+                "payment_method": payment_method,
+                "estimated_delivery": str(estimated_delivery)
+            }
+
+            return redirect(url_for("main.fake_payment"))
+
+        # ---------------- CREATE ORDER (COD) ----------------
+        order = Order(
+            user_id=current_user.user_id,
+            total_amount=total_price,
+            status="Pending",
+            shipping_address=shipping_address,
+            payment_method=payment_method,
+            city=city,
+            estimated_delivery=estimated_delivery
         )
 
-        db.session.add(order_item)
+        db.session.add(order)
+        db.session.commit()
 
-    # ✅ UPDATE FINAL TOTAL
-    order.total_amount = total_price
-    db.session.commit()
+        # ---------------- PROCESS ITEMS ----------------
+        for product_id, quantity in cart.items():
 
-    # ✅ CLEAR CART
-    session.pop("cart", None)
+            product = Product.query.get(int(product_id))
 
-    flash("Your order has been placed successfully!", "success")
-    return redirect(url_for("main.orders"))
+            if not product or product.stock_quantity < quantity:
+                flash("Product out of stock!", "danger")
+                return redirect(url_for("main.cart"))
 
+            product.stock_quantity -= quantity
 
+            order_item = OrderItem(
+                order_id=order.order_id,
+                product_id=product.product_id,
+                quantity=quantity,
+                price_per_unit=product.price
+            )
+
+            db.session.add(order_item)
+
+        db.session.commit()
+
+        session.pop("cart", None)
+
+        flash("Order placed successfully!", "success")
+        return redirect(url_for("main.orders"))
+
+    # ---------------- GET REQUEST ----------------
+    return render_template(
+        "checkout.html",
+        total_price=total_price
+    )
+
+@main.route("/fake-payment", methods=["GET", "POST"])
+@login_required
+def fake_payment():
+
+    temp_order = session.get("temp_order")
+
+    if not temp_order:
+        flash("Invalid payment session.", "danger")
+        return redirect(url_for("main.checkout"))
+
+    if request.method == "POST":
+
+        # ---------------- CREATE ORDER AFTER FAKE PAYMENT ----------------
+        order = Order(
+            user_id=current_user.user_id,
+            total_amount=temp_order["total_price"],
+            status="Confirmed",
+            shipping_address=temp_order["shipping_address"],
+            payment_method=temp_order["payment_method"],
+            city="Ahmedabad",
+            estimated_delivery=datetime.strptime(
+                temp_order["estimated_delivery"], "%Y-%m-%d"
+            )
+        )
+
+        db.session.add(order)
+        db.session.commit()
+
+        cart = session.get("cart", {})
+
+        for product_id, quantity in cart.items():
+
+            product = Product.query.get(int(product_id))
+
+            if not product or product.stock_quantity < quantity:
+                flash("Product out of stock!", "danger")
+                return redirect(url_for("main.cart"))
+
+            product.stock_quantity -= quantity
+
+            order_item = OrderItem(
+                order_id=order.order_id,
+                product_id=product.product_id,
+                quantity=quantity,
+                price_per_unit=product.price
+            )
+
+            db.session.add(order_item)
+
+        db.session.commit()
+
+        session.pop("cart", None)
+        session.pop("temp_order", None)
+
+        flash("Payment successful! Order confirmed.", "success")
+        return redirect(url_for("main.orders"))
+
+    return render_template(
+        "fake_payment.html",
+        method=temp_order["payment_method"],
+        total=temp_order["total_price"]
+    )
 # ==================== ADMIN ROUTES ====================
 
 # -------------------- ADMIN DASHBOARD --------------------
@@ -1302,6 +1421,18 @@ def admin_ai_insights():
         filter_type=filter_type,
     )
 
+@main.app_context_processor
+def inject_coupon_count():
+
+    if current_user.is_authenticated and current_user.role != "admin":
+        coupon_count = Coupon.query.filter_by(
+            user_id=current_user.user_id,
+            is_used=False
+        ).count()
+    else:
+        coupon_count = 0
+
+    return dict(coupon_count=coupon_count)
 @main.route("/admin/customer-intelligence")
 @login_required
 @admin_required
@@ -1462,16 +1593,49 @@ def admin_customer_intelligence():
         clv_data=clv_data,
         coupon_recommendations=coupon_recommendations
     )
-@main.route("/admin/send-coupon/<int:user_id>/<coupon_code>")
+@main.route("/admin/send-coupon/<int:user_id>/<coupon_code>/<int:discount>")
 @login_required
 @admin_required
-def send_coupon(user_id, coupon_code):
+def send_coupon(user_id, coupon_code, discount):
 
     user = User.query.get_or_404(user_id)
 
-    # 🔥 Simulated email sending
-    print(f"Sending coupon {coupon_code} to {user.email}")
+    expiry = datetime.utcnow() + timedelta(days=7)
 
-    flash(f"Coupon {coupon_code} sent to {user.username} successfully!", "success")
+    new_coupon = Coupon(
+        code=coupon_code,
+        discount_percent=discount,
+        user_id=user.user_id,
+        is_sent=True,
+        expiry_date=expiry
+    )
+
+    db.session.add(new_coupon)
+    db.session.commit()
+
+    flash(f"Coupon {coupon_code} sent! Valid for 7 days.", "success")
 
     return redirect(url_for("main.admin_customer_intelligence"))
+
+@main.route("/admin/coupons")
+@login_required
+@admin_required
+def admin_coupons():
+
+    coupons = Coupon.query.order_by(Coupon.created_at.desc()).all()
+
+    return render_template("admin_coupons.html", coupons=coupons)
+
+@main.route("/my-coupons")
+@login_required
+def my_coupons():
+
+    active_coupons = Coupon.query.filter_by(
+        user_id=current_user.user_id,
+        is_used=False
+    ).all()
+
+    return render_template(
+        "my_coupons.html",
+        coupons=active_coupons
+    )

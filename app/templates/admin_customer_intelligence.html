@@ -109,6 +109,7 @@
     {% endif %}
 </div>
 
+
 <div class="chart-box" style="margin-top:30px;">
     <h3>🎁 Smart Coupon Recommendations</h3>
 
@@ -125,11 +126,14 @@
             <td>
             <div style="font-weight:bold;">{{ item.coupon_code }}</div>
             <div style="margin-top:5px;">
-                <a href="{{ url_for('main.send_coupon', user_id=item.customer.user_id, coupon_code=item.coupon_code) }}"
-                class="btn"
-                style="padding:4px 10px; font-size:12px;">
-                Send Coupon
-                </a>
+                <a href="{{ url_for('main.send_coupon',
+                    user_id=item.customer.user_id,
+                    coupon_code=item.coupon_code,
+                    discount=item.coupon_percent) }}"
+   class="btn"
+   style="padding:4px 10px; font-size:12px;">
+   Send Coupon
+</a>
             </div>
         </td>
             <td>

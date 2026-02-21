@@ -69,3 +69,18 @@ class Review(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('product.product_id'), nullable=False)
     
+class Coupon(db.Model):
+    __tablename__ = "coupons"
+
+    coupon_id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), unique=True, nullable=False)
+    discount_percent = db.Column(db.Integer, nullable=False)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"))
+    user = db.relationship("User", backref="coupons")
+
+    is_sent = db.Column(db.Boolean, default=False)
+    is_used = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expiry_date = db.Column(db.DateTime, nullable=False)

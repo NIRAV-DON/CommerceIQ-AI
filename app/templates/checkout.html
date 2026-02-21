@@ -1,14 +1,34 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Checkout</h1>
-    <form method="POST" action="">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.address.label(class="form-control-label") }}
-            {{ form.address(class="form-control", rows="4") }}
-        </div>
-        <div class="form-group">
-            {{ form.submit(class="btn") }}
-        </div>
-    </form>
+
+<h1>Checkout</h1>
+
+<p><strong>Total: ₹{{ total_price }}</strong></p>
+
+<form method="POST">
+
+    <div style="margin-top:15px;">
+        <label>Shipping Address</label>
+        <textarea name="shipping_address" rows="4" required></textarea>
+    </div>
+
+    <div style="margin-top:15px;">
+    <label>Payment Method</label><br>
+
+    <input type="radio" name="payment_method" value="COD" checked> Cash on Delivery<br>
+    <input type="radio" name="payment_method" value="UPI"> UPI<br>
+    <input type="radio" name="payment_method" value="Card"> Debit/Credit Card
+</div>
+
+    <div style="margin-top:15px;">
+        <label>Have a coupon?</label>
+        <input type="text" name="coupon_code" placeholder="Enter coupon code">
+    </div>
+
+    <div style="margin-top:20px;">
+        <button type="submit" class="btn">Place Order</button>
+    </div>
+
+</form>
+
 {% endblock %}

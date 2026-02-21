@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body style="text-align:center; margin-top:100px;">
+
+<h2>Sound Test</h2>
+
+<button onclick="playSound()">Play Sound</button>
+
+<audio id="sound">
+  <source src="{{ url_for('static', filename='success.wav') }}" type="audio/wav">
+</audio>
+
+<script>
+function playSound() {
+  document.getElementById("sound").play();
+}
+</script>
+
+</body>
+</html>

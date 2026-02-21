@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="payment-container">
+
+    <h2>🔐 Secure Payment Gateway</h2>
+
+    <div class="payment-box">
+
+        <p><strong>Payment Method:</strong> {{ method }}</p>
+        <p><strong>Total Amount:</strong> ₹{{ total }}</p>
+
+        {% if method == "Card" %}
+            <div class="payment-form">
+                <label>Card Number</label>
+                <input type="text" placeholder="1234 5678 9012 3456">
+
+                <label>Card Holder Name</label>
+                <input type="text" placeholder="John Doe">
+
+                <div class="row">
+                    <div>
+                        <label>Expiry</label>
+                        <input type="text" placeholder="MM/YY">
+                    </div>
+                    <div>
+                        <label>CVV</label>
+                        <input type="password" placeholder="123">
+                    </div>
+                </div>
+            </div>
+       
+      {% elif method == "UPI" %}
+
+<div class="payment-form">
+
+    <p style="text-align:center; font-weight:bold;">Scan QR to Pay</p>
+
+    <div class="qr-box">
+        <img src="{{ url_for('static', filename='images/fake_qr.jpg') }}" 
+             alt="QR Code" width="200">
+    </div>
+
+    <div class="loader" id="loader"></div>
+
+    <p class="waiting-text" id="paymentStatus">
+        Processing Payment...
+    </p>
+
+</div>
+<audio id="successSound" preload="auto">
+    <source src="{{ url_for('static', filename='success.wav') }}" type="audio/wav">
+</audio>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    const loader = document.getElementById("loader");
+    const statusText = document.getElementById("paymentStatus");
+
+    setTimeout(function() {
+
+        loader.style.display = "none";
+
+        statusText.innerHTML =
+            "<span class='success-check'>✔</span> Payment Successful!";
+
+        // 🔊 Play success sound
+        const audio = new Audio("{{ url_for('static', filename='success.mp3') }}");
+        audio.volume = 1.0;
+
+        audio.play().then(() => {
+            console.log("Sound playing...");
+        }).catch(error => {
+            console.log("Autoplay blocked:", error);
+        });
+
+    }, 3000);
+
+});
+</script>
+{% endif %}
+
+        <form method="POST">
+            <button type="submit" id="payButton" class="pay-btn">
+                Pay ₹{{ total }}
+            </button>
+        </form>
+
+        <p class="secure-text">🔒 100% Secure Payment Simulation</p>
+
+    </div>
+
+</div>
+
+{% endblock %}
