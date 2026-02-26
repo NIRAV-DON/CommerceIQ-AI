@@ -2,6 +2,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, IntegerField, DecimalField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, NumberRange
 from .models import User
+from wtforms import IntegerField
+from wtforms.validators import Optional, NumberRange
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username',
@@ -39,6 +41,9 @@ class ProductForm(FlaskForm):
     category = StringField('Category')
     image_url = StringField('Image URL (Optional)')
     submit = SubmitField('Add Product')
+    discount_percent = IntegerField("Discount (%)",
+    validators=[Optional(), NumberRange(min=0, max=90)]
+)
 
 class ReviewForm(FlaskForm):
     rating = IntegerField(

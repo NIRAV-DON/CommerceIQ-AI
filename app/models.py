@@ -2,6 +2,7 @@ from . import db, login_manager
 from datetime import datetime
 from flask_login import UserMixin
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -22,10 +23,13 @@ class User(db.Model, UserMixin):
 class Product(db.Model):
     product_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text, nullable=True)
+    description = db.Column(db.Text)
     price = db.Column(db.Numeric(10, 2), nullable=False)
+    stock_quantity = db.Column(db.Integer)
+    category = db.Column(db.String(100))
+    image_url = db.Column(db.String(255))
 
-    discount_percent = db.Column(db.Integer, default=0)  
+    discount_percent = db.Column(db.Integer, default=0)
 
     stock_quantity = db.Column(db.Integer, nullable=False, default=0)
     image_url = db.Column(db.String(255), nullable=True)

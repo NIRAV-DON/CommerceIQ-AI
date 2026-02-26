@@ -1,28 +1,33 @@
 {% extends "layout.html" %}
 {% block content %}
-    <form method="POST" action="">
-        {{ form.hidden_tag() }}
-        <fieldset>
-            <legend><h2>Log In</h2></legend>
-            <div class="form-group">
-                {{ form.email.label }}<br>
-                {{ form.email(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.password.label }}<br>
-                {{ form.password(class="form-control") }}
-            </div>
-            <div class="form-group">
+
+<div class="auth-wrapper">
+    <div class="auth-box">
+        <h2>Welcome Back</h2>
+        <p class="sub-text">Login to continue</p>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            {{ form.email.label }}
+            {{ form.email(class="input-field") }}
+
+            {{ form.password.label }}
+            {{ form.password(class="input-field") }}
+
+            <div class="remember-row">
                 {{ form.remember() }}
                 {{ form.remember.label }}
             </div>
-        </fieldset>
-        <div class="form-group">
-            {{ form.submit(class="btn") }}
-        </div>
-    </form>
-    <small>
-        Need An Account? <a href="{{ url_for('main.register') }}">Sign Up Now</a>
-    </small>
-{% endblock content %}
 
+            {{ form.submit(class="login-btn") }}
+        </form>
+
+        <div class="auth-link">
+            Need an account?
+            <a href="{{ url_for('main.register') }}">Register</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

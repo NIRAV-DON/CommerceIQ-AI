@@ -5,23 +5,24 @@
     <h2>💰 Sales Analytics</h2>
 
     <!-- SUMMARY -->
-    <div class="stats-row">
-        <div class="stat-box">
-            <h4>Total Revenue</h4>
-            <h2>₹ {{ total_sales }}</h2>
-        </div>
+   <div class="sales-summary">
 
-        <div class="stat-box orange">
-            <h4>Total Orders</h4>
-            <h2>{{ total_orders }}</h2>
-        </div>
-
-        <div class="stat-box purple">
-            <h4>Avg Order Value</h4>
-            <h2>₹ {{ avg_order_value }}</h2>
-        </div>
+    <div class="sales-card">
+        <h3>Total Revenue</h3>
+        <p>₹ {{ total_sales }}</p>
     </div>
 
+    <div class="sales-card">
+        <h3>Total Orders</h3>
+        <p>{{ total_orders }}</p>
+    </div>
+
+    <div class="sales-card">
+        <h3>Avg Order Value</h3>
+        <p>₹ {{ avg_order_value }}</p>
+    </div>
+
+</div>
     <hr>
 
     <!-- ORDER SALES TABLE -->

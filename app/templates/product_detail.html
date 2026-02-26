@@ -1,19 +1,20 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="product-detail">
+<div class="product-detail-wrapper">
 
-    <!-- LEFT IMAGE -->
-    <div class="product-left">
-        <img src="{{ product.image_url or url_for('static', filename='img/no-image.png') }}"
+    <!-- LEFT: PRODUCT IMAGE -->
+    <div class="product-image">
+        <img src="{{ product.image_url or url_for('static', filename='images/no-image.png') }}"
              alt="{{ product.name }}">
     </div>
 
-    <!-- RIGHT INFO -->
-    <div class="product-right">
+    <!-- RIGHT: PRODUCT INFO -->
+    <div class="product-info">
+
         <h1>{{ product.name }}</h1>
 
-        <!-- ⭐ RATING SUMMARY -->
+        <!-- Rating Summary -->
         <div class="rating-summary">
             {% if review_count > 0 %}
                 ⭐ <strong>{{ avg_rating }}</strong> / 5
@@ -23,19 +24,35 @@
             {% endif %}
         </div>
 
-        <p class="price">₹ {{ product.price }}</p>
+        {% if product.discount_percent and product.discount_percent > 0 %}
+    {% set discounted_price = product.price - 
+        (product.price * product.discount_percent / 100) %}
+
+    <p class="old-price">
+        ₹ {{ product.price }}
+    </p>
+
+    <p class="discount-price">
+        ₹ {{ discounted_price | round(2) }}
+    </p>
+
+    <span class="discount-badge">
+        {{ product.discount_percent }}% OFF
+    </span>
+
+{% else %}
+    <p class="price">₹ {{ product.price }}</p>
+{% endif %}
         <p class="desc">{{ product.description }}</p>
 
-        <!-- STOCK STATUS -->
+        <!-- Stock Status -->
         {% if product.stock_quantity == 0 %}
             <p class="stock out">Out of Stock</p>
         {% elif product.stock_quantity <= 5 %}
-            <p class="stock low">
-                Only {{ product.stock_quantity }} left!
-            </p>
+            <p class="stock low">Only {{ product.stock_quantity }} left!</p>
         {% endif %}
 
-        <!-- ADD TO CART -->
+        <!-- Add To Cart -->
         {% if product.stock_quantity > 0 %}
         <form method="POST"
               action="{{ url_for('main.add_to_cart', product_id=product.product_id) }}">
@@ -47,12 +64,13 @@
             <button class="btn">Add to Cart</button>
         </form>
         {% endif %}
+
     </div>
 </div>
 
 <hr>
 
-<!-- ⭐ REVIEW FORM -->
+<!-- REVIEW FORM -->
 <h2>Write a Review</h2>
 
 {% if current_user.is_authenticated %}
@@ -88,7 +106,7 @@
 
 <hr>
 
-<!-- ⭐ REVIEWS LIST -->
+<!-- REVIEW LIST -->
 <h2>Customer Reviews</h2>
 
 {% if reviews %}
@@ -109,6 +127,7 @@
         {% if current_user.is_authenticated
               and current_user.user_id == review.user_id %}
         <div class="review-actions">
+
             <a href="{{ url_for('main.edit_review',
                                 review_id=review.review_id) }}">
                 Edit
@@ -123,8 +142,10 @@
                     Delete
                 </button>
             </form>
+
         </div>
         {% endif %}
+
     </div>
     {% endfor %}
 {% else %}

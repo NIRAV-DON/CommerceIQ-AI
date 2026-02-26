@@ -1,34 +1,33 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h1>Checkout</h1>
+<div class="checkout-wrapper">
 
-<p><strong>Total: ₹{{ total_price }}</strong></p>
+    <div class="checkout-card">
+        <h2>Checkout</h2>
 
-<form method="POST">
+        <form method="POST">
 
-    <div style="margin-top:15px;">
-        <label>Shipping Address</label>
-        <textarea name="shipping_address" rows="4" required></textarea>
+            <label>Shipping Address</label>
+            <textarea name="shipping_address" class="modern-input"></textarea>
+
+            <label>Payment Method</label>
+            <div class="payment-options">
+                <label><input type="radio" name="payment_method" value="COD"> Cash on Delivery</label>
+                <label><input type="radio" name="payment_method" value="UPI"> UPI</label>
+                <label><input type="radio" name="payment_method" value="Card"> Card</label>
+            </div>
+
+            <label>Coupon</label>
+            <input type="text" name="coupon_code" class="modern-input">
+
+            <button type="submit" class="modern-btn">
+                Place Order
+            </button>
+
+        </form>
     </div>
 
-    <div style="margin-top:15px;">
-    <label>Payment Method</label><br>
-
-    <input type="radio" name="payment_method" value="COD" checked> Cash on Delivery<br>
-    <input type="radio" name="payment_method" value="UPI"> UPI<br>
-    <input type="radio" name="payment_method" value="Card"> Debit/Credit Card
 </div>
-
-    <div style="margin-top:15px;">
-        <label>Have a coupon?</label>
-        <input type="text" name="coupon_code" placeholder="Enter coupon code">
-    </div>
-
-    <div style="margin-top:20px;">
-        <button type="submit" class="btn">Place Order</button>
-    </div>
-
-</form>
 
 {% endblock %}

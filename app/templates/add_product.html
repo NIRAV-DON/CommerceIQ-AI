@@ -1,37 +1,53 @@
 {% extends "layout.html" %}
 {% block content %}
-    <form method="POST" action="">
-        {{ form.hidden_tag() }}
-        <fieldset>
-            <legend><h2>Add a New Product</h2></legend>
-            <div class="form-group">
-                {{ form.name.label }}<br>
-                {{ form.name(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.description.label }}<br>
-                {{ form.description(class="form-control", rows=5) }}
-            </div>
-            <div class="form-group">
-                {{ form.price.label }}<br>
-                {{ form.price(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.stock_quantity.label }}<br>
-                {{ form.stock_quantity(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.category.label }}<br>
-                {{ form.category(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.image_url.label }} (Optional)<br>
-                {{ form.image_url(class="form-control") }}
-            </div>
-        </fieldset>
-        <div class="form-group">
-            {{ form.submit(class="btn") }}
-        </div>
-    </form>
-{% endblock content %}
 
+<div class="form-wrapper">
+    <div class="form-card">
+
+        <h2>Add New Product</h2>
+
+        <form method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="form-group">
+        <label>Product Name</label>
+        {{ form.name(class="modern-input") }}
+    </div>
+
+    <div class="form-group">
+        <label>Description</label>
+        {{ form.description(class="modern-input") }}
+    </div>
+
+    <div class="form-row">
+        <div>
+            <label>Price</label>
+            {{ form.price(class="modern-input") }}
+        </div>
+        <div>
+            <label>Stock</label>
+            {{ form.stock_quantity(class="modern-input") }}
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Category</label>
+        {{ form.category(class="modern-input") }}
+    </div>
+
+    <div class="form-group">
+        <label>Image URL</label>
+        {{ form.image_url(class="modern-input") }}
+    </div>
+        <div class="form-group">
+            <label>Discount (%)</label>
+            {{ form.discount_percent(class="modern-input") }}
+
+    <button type="submit" class="modern-btn">
+        Add Product
+    </button>
+</form>
+    </div>
+</div>
+
+{% endblock %}

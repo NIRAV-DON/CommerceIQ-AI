@@ -15,6 +15,9 @@ from flask import send_file
 from datetime import datetime
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from reportlab.platypus import Image
+from reportlab.lib import utils
+import os
 
 
 # Blueprint
@@ -287,13 +290,16 @@ def download_invoice(order_id):
     elements = []
     styles = getSampleStyleSheet()
 
-    # =============================
-    # HEADER
-    # =============================
-    elements.append(Paragraph("<font size=20><b>CommerceIQ AI</b></font>", styles["Title"]))
-   
-    elements.append(Spacer(1, 20))
+    # -------- LOGO --------
+    logo_path = os.path.join("app", "static", "images", "logo.png")
 
+    logo = Image(logo_path)
+    logo.drawHeight = 50
+    logo.drawWidth = 150
+
+    elements.append(logo)
+    elements.append(Spacer(1, 15))
+   
     # =============================
     # BILL TO
     # =============================
@@ -423,6 +429,7 @@ def cart():
             item_total = product.price * qty
             total_price += item_total
             cart_items.append({
+                "id": product.product_id,
                 "product": product,
                 "quantity": qty,
                 "item_total": item_total
@@ -986,7 +993,8 @@ def add_product():
             price=form.price.data,
             stock_quantity=form.stock_quantity.data,
             category=form.category.data,
-            image_url=form.image_url.data
+            image_url=form.image_url.data,
+            discount_percent=form.discount_percent.data or 0
         )
         db.session.add(product)
         db.session.commit()
@@ -1072,8 +1080,15 @@ def users_pdf():
     elements = []
     styles = getSampleStyleSheet()
 
-    elements.append(Paragraph("<b>CommerceIQ AI - User Report</b>", styles["Title"]))
-    elements.append(Spacer(1, 20))
+    # -------- LOGO --------
+    logo_path = os.path.join("app", "static", "images", "logo.png")
+
+    logo = Image(logo_path)
+    logo.drawHeight = 50
+    logo.drawWidth = 150
+
+    elements.append(logo)
+    elements.append(Spacer(1, 15))
 
     data = [["Username", "Email", "Role", "Registered On"]]
 
@@ -1221,8 +1236,15 @@ def orders_pdf():
     elements = []
     styles = getSampleStyleSheet()
 
-    elements.append(Paragraph("<b>CommerceIQ AI - Orders Report</b>", styles["Title"]))
-    elements.append(Spacer(1, 20))
+    # -------- LOGO --------
+    logo_path = os.path.join("app", "static", "images", "logo.png")
+
+    logo = Image(logo_path)
+    logo.drawHeight = 50
+    logo.drawWidth = 150
+
+    elements.append(logo)
+    elements.append(Spacer(1, 15))
 
     data = [["Order ID", "User", "Date", "Status", "Amount (Rs)"]]
 
@@ -1630,12 +1652,12 @@ def admin_coupons():
 @login_required
 def my_coupons():
 
-    active_coupons = Coupon.query.filter_by(
+    coupons = Coupon.query.filter_by(
         user_id=current_user.user_id,
         is_used=False
     ).all()
 
     return render_template(
         "my_coupons.html",
-        coupons=active_coupons
+        coupons=coupons
     )

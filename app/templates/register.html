@@ -1,31 +1,36 @@
 {% extends "layout.html" %}
 {% block content %}
-    <form method="POST" action="">
-        {{ form.hidden_tag() }}
-        <fieldset>
-            <legend><h2>Join Today</h2></legend>
-            <div class="form-group">
-                {{ form.username.label }}<br>
-                {{ form.username(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.email.label }}<br>
-                {{ form.email(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.password.label }}<br>
-                {{ form.password(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.confirm_password.label }}<br>
-                {{ form.confirm_password(class="form-control") }}
-            </div>
-        </fieldset>
-        <div class="form-group">
-            {{ form.submit(class="btn") }}
+
+<div class="auth-wrapper">
+    <div class="auth-box">
+
+        <h2>Create Account</h2>
+        <p class="sub-text">Join CommerceIQ AI</p>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            {{ form.username.label }}
+            {{ form.username(class="input-field") }}
+
+            {{ form.email.label }}
+            {{ form.email(class="input-field") }}
+
+            {{ form.password.label }}
+            {{ form.password(class="input-field") }}
+
+            {{ form.confirm_password.label }}
+            {{ form.confirm_password(class="input-field") }}
+
+            {{ form.submit(class="login-btn") }}
+        </form>
+
+        <div class="auth-link">
+            Already have an account?
+            <a href="{{ url_for('main.login') }}">Login</a>
         </div>
-    </form>
-    <small>
-        Already Have An Account? <a href="{{ url_for('main.login') }}">Sign In</a>
-    </small>
-{% endblock content %}
+
+    </div>
+</div>
+
+{% endblock %}

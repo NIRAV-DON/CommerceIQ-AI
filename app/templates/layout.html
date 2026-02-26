@@ -11,9 +11,8 @@
 <nav class="navbar">
    <div class="logo">
     <a href="{{ url_for('main.home') }}">
-         <img src="{{ url_for('static', filename='images/logo.png') }}" height="70">
-             alt="CommerceIQ AI Logo" 
-             height="45">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" 
+             alt="CommerceIQ AI Logo">
     </a>
 </div>
   <ul class="nav-links">
@@ -80,7 +79,7 @@
     {% block content %}{% endblock %}
 </div>
 <footer class="footer">
-    <img src="{{ url_for('static', filename='images/logo.png') }}" height="70">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" >
     <p>Address: Ahmedabad, Gujarat, India</p>
     <p>Email: support@commerceiq.ai</p>
 </footer>

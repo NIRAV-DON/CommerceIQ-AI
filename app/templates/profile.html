@@ -1,28 +1,29 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="profile-container">
+<div class="profile-wrapper">
 
-    <div class="profile-card">
-        <h2>👤 My Profile</h2>
-
-        <div class="profile-info">
-            <p><strong>Username:</strong> {{ user.username }}</p>
-            <p><strong>Email:</strong> {{ user.email }}</p>
-            <p><strong>Role:</strong> {{ user.role }}</p>
+    <div class="profile-left">
+        <div class="profile-card">
+            <h2>👤 My Profile</h2>
+            <p><strong>Username:</strong> {{ current_user.username }}</p>
+            <p><strong>Email:</strong> {{ current_user.email }}</p>
+            <p><strong>Role:</strong> {{ current_user.role }}</p>
         </div>
     </div>
 
-    <div class="profile-stats">
+    <div class="profile-right">
+
         <div class="stat-card">
-            <h3>📦 Total Orders</h3>
+            <h4>Total Orders</h4>
             <p>{{ total_orders }}</p>
         </div>
 
         <div class="stat-card">
-            <h3>💰 Total Spent</h3>
-            <p>₹{{ total_spent }}</p>
+            <h4>Total Spent</h4>
+            <p>₹ {{ total_spent }}</p>
         </div>
+
     </div>
 
 </div>

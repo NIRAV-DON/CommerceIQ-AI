@@ -1,39 +1,45 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h1>Your Cart</h1>
+<div class="cart-wrapper">
 
-{% if cart_items %}
-<table>
-    <tr>
-        <th>Product</th>
-        <th>Qty</th>
-        <th>Total</th>
-        <th></th>
-    </tr>
+    <div class="cart-items">
+        <h2>Your Cart</h2>
 
+        <table class="cart-table">
+    <thead>
+        <tr>
+            <th style="width:45%;">Product</th>
+            <th style="width:15%;">Qty</th>
+            <th style="width:25%;">Total</th>
+            <th style="width:15%;"></th>
+        </tr>
+    </thead>
+    <tbody>
     {% for item in cart_items %}
     <tr>
-        <td>{{ item.product.name }}</td>
-        <td>{{ item.quantity }}</td>
-        <td>₹ {{ item.item_total }}</td>
+        <td>{{ item['product'].name }}</td>
+        <td>{{ item['quantity'] }}</td>
+        <td>₹ {{ item['item_total'] }}</td>
         <td>
-        <a href="{{ url_for('main.remove_from_cart', product_id=item.product.product_id) }}"
-   class="cart-remove"
-   title="Remove item">
-   ❌
-        </a>
+            <a href="{{ url_for('main.remove_from_cart', product_id=item['id']) }}">
+                ❌
+            </a>
         </td>
     </tr>
     {% endfor %}
-</table>
+</tbody>
+</table>    
+    </div>
 
-<h3>Total: ₹ {{ total_price }}</h3>
+    <div class="cart-summary">
+        <h3>Order Summary</h3>
+        <p>Total: ₹ {{ total_price }}</p>
+        <a href="{{ url_for('main.checkout') }}" class="modern-btn">
+            Checkout
+        </a>
+    </div>
 
-<a href="{{ url_for('main.checkout') }}" class="btn">Checkout</a>
-
-{% else %}
-<p>Your cart is empty.</p>
-{% endif %}
+</div>
 
 {% endblock %}
