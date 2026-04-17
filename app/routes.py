@@ -230,19 +230,24 @@ def delete_review(review_id):
 def add_to_cart(product_id):
     product = Product.query.get_or_404(product_id)
 
-    quantity = int(request.form.get("quantity", 1))
+    try:
+        quantity = int(request.form.get("quantity", 1))
+        quantity = max(1, quantity)
+    except:
+        quantity = 1
 
     cart = session.get("cart", {})
     current_qty = cart.get(str(product_id), 0)
 
     new_total = current_qty + quantity
 
-    # ✅ FIX: Total quantity check
+    # ✅ stock validation on total quantity
     if new_total > product.stock_quantity:
-        flash(f"Only {product.stock_quantity} item(s) available in stock.", "danger")
+        flash(f"Only {product.stock_quantity} item(s) available.", "danger")
         return redirect(url_for("main.product_detail", product_id=product_id))
 
-    cart[str(product_id)] = new_total
+    cart = session.get("cart", {})
+    cart[str(product_id)] = quantity
     session["cart"] = cart
 
     flash("Product added to cart!", "success")
@@ -417,21 +422,21 @@ def cancel_order(order_id):
 @main.route("/cart")
 @login_required
 def cart():
-    cart_session = session.get("cart", {})
+
+    cart = session.get("cart", {})
+
     cart_items = []
     total_price = 0
 
-    for pid, qty in cart_session.items():
-        product = Product.query.get(int(pid))
+    for product_id, quantity in cart.items():
+        product = Product.query.get(int(product_id))
+
         if product:
-            item_total = product.price * qty
-            total_price += item_total
             cart_items.append({
-                "id": product.product_id,
                 "product": product,
-                "quantity": qty,
-                "item_total": item_total
+                "quantity": quantity
             })
+            total_price += product.price * quantity
 
     return render_template(
         "cart.html",
@@ -439,14 +444,7 @@ def cart():
         total_price=total_price
     )
 
-@main.route("/remove_from_cart/<int:product_id>")
-@login_required
-def remove_from_cart(product_id):
-    cart = session.get("cart", {})
-    cart.pop(str(product_id), None)
-    session["cart"] = cart
-    flash("Product removed.", "info")
-    return redirect(url_for("main.cart"))
+
 
 # -------------------- CHECKOUT --------------------
 from datetime import date, timedelta, datetime
@@ -481,6 +479,7 @@ def checkout():
             return redirect(url_for("main.checkout"))
 
         discount_amount = 0
+        coupon = None  # ✅ FIX
 
         # ---------------- COUPON VALIDATION ----------------
         if coupon_code:
@@ -499,9 +498,6 @@ def checkout():
 
                 discount_amount = (total_price * coupon.discount_percent) / 100
                 total_price -= discount_amount
-
-                coupon.is_used = True
-                db.session.commit()
 
                 flash(f"{coupon.discount_percent}% discount applied!", "success")
 
@@ -535,48 +531,68 @@ def checkout():
             return redirect(url_for("main.fake_payment"))
 
         # ---------------- VALIDATE STOCK FIRST ----------------
-    for product_id, quantity in cart.items():
-        product = Product.query.get(int(product_id))
+        for product_id, quantity in cart.items():
+            product = Product.query.get(int(product_id))
 
-        if not product or product.stock_quantity < quantity:
-            flash(f"{product.name} is out of stock!", "danger")
+            if not product or product.stock_quantity < quantity:
+                flash(f"{product.name} is out of stock!", "danger")
+                return redirect(url_for("main.cart"))
+
+        for product_id, quantity in cart.items():
+                product = Product.query.get(int(product_id))
+
+        if not product:
+            flash("Product not found!", "danger")
             return redirect(url_for("main.cart"))
 
-    # ---------------- CREATE ORDER ----------------
-    order = Order(
-        user_id=current_user.user_id,
-        total_amount=total_price,
-        status="Pending",
-        shipping_address=shipping_address,
-        payment_method=payment_method,
-        city=city,
-        estimated_delivery=estimated_delivery
-    )
-
-    db.session.add(order)
-    db.session.commit()
-
-    # ---------------- PROCESS ITEMS ----------------
-    for product_id, quantity in cart.items():
-        product = Product.query.get(int(product_id))
-
-        product.stock_quantity -= quantity
-
-        order_item = OrderItem(
-            order_id=order.order_id,
-            product_id=product.product_id,
-            quantity=quantity,
-            price_per_unit=product.price
+        if product.stock_quantity < quantity:
+            flash(f"{product.name} only has {product.stock_quantity} left!", "danger")
+            return redirect(url_for("main.cart"))
+        # ---------------- CREATE ORDER ----------------
+        order = Order(
+            user_id=current_user.user_id,
+            total_amount=total_price,
+            status="Pending",
+            shipping_address=shipping_address,
+            payment_method=payment_method,
+            city=city,
+            estimated_delivery=estimated_delivery
         )
 
-        db.session.add(order_item)
+        try:
+            db.session.add(order)
+            db.session.flush()
 
-    db.session.commit()
+            for product_id, quantity in cart.items():
+                product = Product.query.get(int(product_id))
 
-    session.pop("cart", None)
+                product.stock_quantity -= quantity
 
-    flash("Order placed successfully!", "success")
-    return redirect(url_for("main.orders"))
+                order_item = OrderItem(
+                    order_id=order.order_id,
+                    product_id=product.product_id,
+                    quantity=quantity,
+                    price_per_unit=product.price
+                )
+
+                db.session.add(order_item)
+
+            # ✅ coupon update inside try
+            if coupon:
+                coupon.is_used = True
+
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            print(e)
+            flash("Something went wrong during checkout!", "danger")
+            return redirect(url_for("main.cart"))
+
+        session.pop("cart", None)
+
+        flash("Order placed successfully!", "success")
+        return redirect(url_for("main.orders"))
 
     # ---------------- GET ----------------
     return render_template(
@@ -632,7 +648,8 @@ def fake_payment():
             )
 
             db.session.add(order_item)
-
+  
+            
         db.session.commit()
 
         session.pop("cart", None)
@@ -1641,25 +1658,63 @@ def send_coupon(user_id, coupon_code, discount):
 
     return redirect(url_for("main.admin_customer_intelligence"))
 
-@main.route("/admin/coupons")
+@main.route("/admin/coupons", methods=["GET", "POST"])
 @login_required
-@admin_required
 def admin_coupons():
+    
+    if request.method == "POST":
 
-    coupons = Coupon.query.order_by(Coupon.created_at.desc()).all()
+        code = request.form.get("code")
+        discount = request.form.get("discount")
+
+        coupon = Coupon(
+            code=code,
+            discount_percent=discount,
+            user_id=current_user.user_id,
+            is_used=False
+        )
+
+        db.session.add(coupon)
+        db.session.commit()
+
+        flash("Coupon created!", "success")
+
+    coupons = Coupon.query.all()
 
     return render_template("admin_coupons.html", coupons=coupons)
-
-@main.route("/my-coupons")
+@main.route("/update_cart/<int:product_id>/<action>")
 @login_required
-def my_coupons():
+def update_cart(product_id, action):
 
-    coupons = Coupon.query.filter_by(
-        user_id=current_user.user_id,
-        is_used=False
-    ).all()
+    cart = session.get("cart", {})
 
-    return render_template(
-        "my_coupons.html",
-        coupons=coupons
-    )
+    if str(product_id) in cart:
+        if action == "increase":
+            product = Product.query.get(product_id)
+
+            if cart[str(product_id)] < product.stock_quantity:
+                cart[str(product_id)] += 1
+            else:
+                flash("Stock limit reached!", "danger")
+
+        elif action == "decrease":
+            cart[str(product_id)] -= 1
+
+            if cart[str(product_id)] <= 0:
+                cart.pop(str(product_id))
+
+    session["cart"] = cart
+    return redirect(url_for("main.cart"))
+@main.route("/remove_from_cart/<int:product_id>")
+@login_required
+def remove_from_cart(product_id):
+
+    cart = session.get("cart", {})
+
+    if str(product_id) in cart:
+        cart.pop(str(product_id))
+
+    session["cart"] = cart
+    flash("Item removed from cart!", "success")
+
+    return redirect(url_for("main.cart"))

@@ -2,20 +2,36 @@
 {% block content %}
 
 <div class="container">
-    <h1 style="margin-bottom: 1.5rem;">My Orders</h1>
-    
+
+    <!-- 🔥 HEADER + FILTER -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h1>My Orders</h1>
+
+       <form method="GET">
+    <select name="status" onchange="this.form.submit()">
+        <option value="">All Orders</option>
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Shipped">Shipped</option>
+        <option value="Out for Delivery">Out for Delivery</option>
+        <option value="Delivered">Delivered</option>
+        <option value="Cancelled">Cancelled</option>
+    </select>
+</form>
+    </div>
 
     {% if orders %}
         {% for order in orders %}
         <div class="order-card">
 
             <h4>Order #{{ order.order_id }}</h4>
+
             <p><strong>Total:</strong> ₹{{ order.total_amount }}</p>
             <p><strong>Payment:</strong> {{ order.payment_method }}</p>
             <p><strong>City:</strong> {{ order.city }}</p>
             <p><strong>Address:</strong> {{ order.shipping_address }}</p>
 
-            <!-- 🚚 STATUS TEXT -->
+            <!-- 🚚 STATUS -->
             {% if order.status == 'Pending' %}
                 <p>🕒 Order processing</p>
             {% elif order.status == 'Shipped' %}
@@ -24,6 +40,8 @@
                 <p>🏍️ Arriving today</p>
             {% elif order.status == 'Delivered' %}
                 <p>✅ Delivered</p>
+            {% elif order.status == 'Cancelled' %}
+                <p style="color:red;">❌ Cancelled</p>
             {% endif %}
 
             <!-- 📦 DELIVERY DATE -->
@@ -33,14 +51,17 @@
                 <strong>{{ order.estimated_delivery.strftime('%d %b %Y') }}</strong>
             </p>
             {% endif %}
+
+            <!-- 📄 INVOICE -->
             <a href="{{ url_for('main.download_invoice', order_id=order.order_id) }}"
-   class="btn"
-   style="margin-top:10px; display:inline-block;">
-   Download Invoice
-</a>
+               class="btn"
+               style="margin-top:10px; display:inline-block;">
+               Download Invoice
+            </a>
 
             <!-- 🕒 TIMELINE -->
             <div class="timeline">
+
                 <div class="step {% if order.status in ['Pending','Confirmed','Shipped','Out for Delivery','Delivered'] %}active{% endif %}">
                     Placed
                 </div>
@@ -60,57 +81,36 @@
                 <div class="step {% if order.status == 'Delivered' %}active{% endif %}">
                     Delivered
                 </div>
-            </div>
-            {% if order.status in ['Pending', 'Confirmed'] %}
-<form method="POST"
-      action="{{ url_for('main.cancel_order', order_id=order.order_id) }}"
-      style="margin-top:10px;">
-    <button class="btn btn-danger"
-            onclick="return confirm('Cancel this order?')">
-        ❌ Cancel Order
-    </button>
-</form>
-<form method="GET" style="margin-bottom:20px;">
-    <select name="status" onchange="this.form.submit()">
-        <option value="All">All Orders</option>
-        <option value="Pending">Pending</option>
-        <option value="Confirmed">Confirmed</option>
-        <option value="Shipped">Shipped</option>
-        <option value="Out for Delivery">Out for Delivery</option>
-        <option value="Delivered">Delivered</option>
-        <option value="Cancelled">Cancelled</option>
-    </select>
-</form>
 
-{% endif %}
-<p>
-Status:
-<span class="status {{ order.status|lower }}">
-    {{ order.status }}
-</span>
-</p>
+            </div>
+
+            <!-- ❌ CANCEL BUTTON -->
+            {% if order.status in ['Pending', 'Confirmed'] %}
+            <form method="POST"
+                  action="{{ url_for('main.cancel_order', order_id=order.order_id) }}"
+                  style="margin-top:10px;">
+                <button class="btn btn-danger"
+                        onclick="return confirm('Cancel this order?')">
+                    ❌ Cancel Order
+                </button>
+            </form>
+            {% endif %}
+
+            <!-- STATUS LABEL -->
+            <p style="margin-top:10px;">
+                Status:
+                <span class="status {{ order.status|lower }}">
+                    {{ order.status }}
+                </span>
+            </p>
 
         </div>
         {% endfor %}
+
     {% else %}
         <p>You have not placed any orders yet.</p>
     {% endif %}
+
 </div>
-{% for order in orders %}
-
-    <div class="order-card">
-
-        <h4>Order #{{ order.order_id }}</h4>
-        <p>Total: ₹{{ order.total_amount }}</p>
-
-        {% if order.status == 'Cancelled' %}
-            <p style="color:red;">❌ This order was cancelled</p>
-        {% endif %}
-
-    </div>
-
-{% endfor %}
-
-
 
 {% endblock %}

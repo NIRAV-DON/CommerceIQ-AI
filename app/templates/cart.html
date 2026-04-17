@@ -3,38 +3,59 @@
 
 <div class="cart-wrapper">
 
+    <!-- CART ITEMS -->
     <div class="cart-items">
         <h2>Your Cart</h2>
 
         <table class="cart-table">
-    <thead>
-        <tr>
-            <th style="width:45%;">Product</th>
-            <th style="width:15%;">Qty</th>
-            <th style="width:25%;">Total</th>
-            <th style="width:15%;"></th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for item in cart_items %}
-    <tr>
-        <td>{{ item['product'].name }}</td>
-        <td>{{ item['quantity'] }}</td>
-        <td>₹ {{ item['item_total'] }}</td>
-        <td>
-            <a href="{{ url_for('main.remove_from_cart', product_id=item['id']) }}">
-                ❌
-            </a>
-        </td>
-    </tr>
-    {% endfor %}
-</tbody>
-</table>    
+            <thead>
+                <tr>
+                    <th style="width:45%;">Product</th>
+                    <th style="width:20%;">Quantity</th>
+                    <th style="width:20%;">Total</th>
+                    <th style="width:15%;"></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <!-- PRODUCT NAME -->
+                    <td>{{ item['product'].name }}</td>
+
+                    <!-- QUANTITY CONTROLS -->
+                    <td>
+                        <a href="{{ url_for('main.update_cart', product_id=item['product'].product_id, action='decrease') }}">➖</a>
+
+                        <span style="margin: 0 10px;">
+                            {{ item['quantity'] }}
+                        </span>
+
+                        <a href="{{ url_for('main.update_cart', product_id=item['product'].product_id, action='increase') }}">➕</a>
+                    </td>
+
+                    <!-- ITEM TOTAL -->
+                    <td>
+                        ₹ {{ item['product'].price * item['quantity'] }}
+                    </td>
+
+                    <!-- REMOVE BUTTON -->
+                    <td>
+                        <a href="{{ url_for('main.remove_from_cart', product_id=item['product'].product_id) }}">
+                            ❌
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
+    <!-- SUMMARY -->
     <div class="cart-summary">
         <h3>Order Summary</h3>
-        <p>Total: ₹ {{ total_price }}</p>
+        <p><strong>Total: ₹ {{ total_price }}</strong></p>
+
         <a href="{{ url_for('main.checkout') }}" class="modern-btn">
             Checkout
         </a>
