@@ -223,6 +223,7 @@ def delete_review(review_id):
     )
 
 
+
 # -------------------- CART --------------------
 @main.route("/add_to_cart/<int:product_id>", methods=["POST"])
 @login_required
@@ -231,20 +232,17 @@ def add_to_cart(product_id):
 
     quantity = int(request.form.get("quantity", 1))
 
-    # ❌ STOCK CHECK
-    if product.stock_quantity <= 0:
-        flash("Product is out of stock!", "danger")
-        return redirect(url_for("main.product_detail", product_id=product_id))
-
-    if quantity > product.stock_quantity:
-        flash(
-            f"Only {product.stock_quantity} item(s) available in stock.",
-            "danger"
-        )
-        return redirect(url_for("main.product_detail", product_id=product_id))
-
     cart = session.get("cart", {})
-    cart[str(product_id)] = cart.get(str(product_id), 0) + quantity
+    current_qty = cart.get(str(product_id), 0)
+
+    new_total = current_qty + quantity
+
+    # ✅ FIX: Total quantity check
+    if new_total > product.stock_quantity:
+        flash(f"Only {product.stock_quantity} item(s) available in stock.", "danger")
+        return redirect(url_for("main.product_detail", product_id=product_id))
+
+    cart[str(product_id)] = new_total
     session["cart"] = cart
 
     flash("Product added to cart!", "success")
@@ -524,7 +522,7 @@ def checkout():
 
         estimated_delivery = date.today() + timedelta(days=base_days)
 
-        # ---------------- FAKE PAYMENT REDIRECT ----------------
+        # ---------------- FAKE PAYMENT ----------------
         if payment_method in ["UPI", "Card"]:
 
             session["temp_order"] = {
@@ -536,7 +534,7 @@ def checkout():
 
             return redirect(url_for("main.fake_payment"))
 
-        # ---------------- CREATE ORDER (COD) ----------------
+        # ---------------- CREATE ORDER ----------------
         order = Order(
             user_id=current_user.user_id,
             total_amount=total_price,
@@ -555,8 +553,13 @@ def checkout():
 
             product = Product.query.get(int(product_id))
 
-            if not product or product.stock_quantity < quantity:
-                flash("Product out of stock!", "danger")
+            # 🔥 FIX: strict validation
+            if not product:
+                flash("Product not found!", "danger")
+                return redirect(url_for("main.cart"))
+
+            if quantity > product.stock_quantity:
+                flash(f"Only {product.stock_quantity} items available for {product.name}", "danger")
                 return redirect(url_for("main.cart"))
 
             product.stock_quantity -= quantity
@@ -577,7 +580,7 @@ def checkout():
         flash("Order placed successfully!", "success")
         return redirect(url_for("main.orders"))
 
-    # ---------------- GET REQUEST ----------------
+    # ---------------- GET ----------------
     return render_template(
         "checkout.html",
         total_price=total_price
