@@ -534,51 +534,49 @@ def checkout():
 
             return redirect(url_for("main.fake_payment"))
 
-        # ---------------- CREATE ORDER ----------------
-        order = Order(
-            user_id=current_user.user_id,
-            total_amount=total_price,
-            status="Pending",
-            shipping_address=shipping_address,
-            payment_method=payment_method,
-            city=city,
-            estimated_delivery=estimated_delivery
+        # ---------------- VALIDATE STOCK FIRST ----------------
+    for product_id, quantity in cart.items():
+        product = Product.query.get(int(product_id))
+
+        if not product or product.stock_quantity < quantity:
+            flash(f"{product.name} is out of stock!", "danger")
+            return redirect(url_for("main.cart"))
+
+    # ---------------- CREATE ORDER ----------------
+    order = Order(
+        user_id=current_user.user_id,
+        total_amount=total_price,
+        status="Pending",
+        shipping_address=shipping_address,
+        payment_method=payment_method,
+        city=city,
+        estimated_delivery=estimated_delivery
+    )
+
+    db.session.add(order)
+    db.session.commit()
+
+    # ---------------- PROCESS ITEMS ----------------
+    for product_id, quantity in cart.items():
+        product = Product.query.get(int(product_id))
+
+        product.stock_quantity -= quantity
+
+        order_item = OrderItem(
+            order_id=order.order_id,
+            product_id=product.product_id,
+            quantity=quantity,
+            price_per_unit=product.price
         )
 
-        db.session.add(order)
-        db.session.commit()
+        db.session.add(order_item)
 
-        # ---------------- PROCESS ITEMS ----------------
-        for product_id, quantity in cart.items():
+    db.session.commit()
 
-            product = Product.query.get(int(product_id))
+    session.pop("cart", None)
 
-            # 🔥 FIX: strict validation
-            if not product:
-                flash("Product not found!", "danger")
-                return redirect(url_for("main.cart"))
-
-            if quantity > product.stock_quantity:
-                flash(f"Only {product.stock_quantity} items available for {product.name}", "danger")
-                return redirect(url_for("main.cart"))
-
-            product.stock_quantity -= quantity
-
-            order_item = OrderItem(
-                order_id=order.order_id,
-                product_id=product.product_id,
-                quantity=quantity,
-                price_per_unit=product.price
-            )
-
-            db.session.add(order_item)
-
-        db.session.commit()
-
-        session.pop("cart", None)
-
-        flash("Order placed successfully!", "success")
-        return redirect(url_for("main.orders"))
+    flash("Order placed successfully!", "success")
+    return redirect(url_for("main.orders"))
 
     # ---------------- GET ----------------
     return render_template(
