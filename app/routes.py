@@ -828,8 +828,24 @@ def admin_dashboard():
             f"{high_risk_count} product(s) may run out of stock within 5 days. "
             "Immediate action recommended."
         )
-     
+        recommended_users = []
 
+    users = User.query.all()
+
+    for user in users:
+
+        total_spent = db.session.query(
+            func.sum(Order.total_amount)
+        ).filter_by(user_id=user.user_id).scalar() or 0
+
+        coupon_code = "SAVE20" if total_spent > 10000 else "SAVE10"
+
+        recommended_users.append({
+            "username": user.username,
+            "clv": total_spent,
+            "coupon": coupon_code
+        })
+    
     return render_template(
         "admin_dashboard.html",
         total_products=total_products,
@@ -847,7 +863,8 @@ def admin_dashboard():
         forecast_labels=forecast_labels,
         forecast_values=forecast_values,
         high_risk_count=high_risk_count,
-        alert_message=alert_message
+        alert_message=alert_message,
+        recommended_users=recommended_users
 
      )
 @main.route("/admin/analytics")
@@ -1660,28 +1677,39 @@ def send_coupon(user_id, coupon_code, discount):
 
 @main.route("/admin/coupons", methods=["GET", "POST"])
 @login_required
+@admin_required
 def admin_coupons():
-    
+
     if request.method == "POST":
 
         code = request.form.get("code")
         discount = request.form.get("discount")
+        user_id = request.form.get("user_id")
 
         coupon = Coupon(
             code=code,
             discount_percent=discount,
-            user_id=current_user.user_id,
-            is_used=False
+            user_id=user_id,
+            is_used=False,
+            expiry_date=datetime.utcnow() + timedelta(days=30)
         )
 
         db.session.add(coupon)
         db.session.commit()
 
-        flash("Coupon created!", "success")
+        flash("Coupon created successfully!", "success")
 
+    # 👇 users dropdown mate
+    users = User.query.all()
+
+    # 👇 table mate
     coupons = Coupon.query.all()
 
-    return render_template("admin_coupons.html", coupons=coupons)
+    return render_template(
+        "admin_coupons.html",
+        users=users,
+        coupons=coupons
+    )
 @main.route("/update_cart/<int:product_id>/<action>")
 @login_required
 def update_cart(product_id, action):
@@ -1718,3 +1746,19 @@ def remove_from_cart(product_id):
     flash("Item removed from cart!", "success")
 
     return redirect(url_for("main.cart"))
+
+@main.route("/my-coupons")
+@login_required
+def my_coupons():
+    from datetime import datetime
+
+    coupons = Coupon.query.filter(
+        Coupon.user_id == current_user.user_id,
+        Coupon.is_used == False,
+        Coupon.expiry_date > datetime.utcnow()
+    ).all()
+        
+    return render_template(
+        "my_coupons.html",
+        coupons=coupons
+    )

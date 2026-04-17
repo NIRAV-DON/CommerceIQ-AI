@@ -1,34 +1,52 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="dashboard-container">
-    <h2>🎁 All Issued Coupons</h2>
+<h2>Create Coupon</h2>
 
-    <div class="chart-box">
-        <table style="width:100%; border-collapse:collapse;">
-            <tr style="background:#f3f4f6;">
-                <th>User</th>
-                <th>Code</th>
-                <th>Discount</th>
-                <th>Status</th>
-            </tr>
+<form method="POST" style="margin-bottom:20px;">
 
-            {% for coupon in coupons %}
-            <tr style="text-align:center; border-bottom:1px solid #ddd;">
-                <td>{{ coupon.user.username }}</td>
-                <td>{{ coupon.code }}</td>
-                <td>{{ coupon.discount_percent }}%</td>
-                <td>
-                    {% if coupon.is_used %}
-                        🟢 Used
-                    {% else %}
-                        🔵 Active
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-</div>
+    <input type="text" name="code" placeholder="Coupon Code" required>
+
+    <input type="number" name="discount" placeholder="Discount %" required>
+
+    <select name="user_id" required>
+        <option value="">Select User</option>
+        {% for user in users %}
+            <option value="{{ user.user_id }}">
+                {{ user.username }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Create</button>
+</form>
+
+<hr>
+
+<h2>All Coupons</h2>
+
+<table border="1" width="100%">
+    <tr>
+        <th>User</th>
+        <th>Code</th>
+        <th>Discount</th>
+        <th>Status</th>
+    </tr>
+
+    {% for c in coupons %}
+    <tr>
+        <td>{{ c.user.username }}</td>
+        <td>{{ c.code }}</td>
+        <td>{{ c.discount_percent }}%</td>
+        <td>
+            {% if c.is_used %}
+                Used
+            {% else %}
+                Active
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
 
 {% endblock %}
