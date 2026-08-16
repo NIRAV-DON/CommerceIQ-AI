@@ -1,24 +1,55 @@
 {% extends "layout.html" %}
 {% block content %}
 
+<style>
+.input-error {
+    border: 2px solid #e63946;
+    animation: shake 0.3s;
+}
+
+.input-success {
+    border: 2px solid #2ecc71;
+}
+
+.error-text {
+    color: #e63946;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-4px); }
+    100% { transform: translateX(0); }
+}
+</style>
+
 <div class="auth-wrapper">
     <div class="auth-box">
 
         <h2>Create Account</h2>
         <p class="sub-text">Join CommerceIQ AI</p>
 
-        <form method="POST">
+        <form method="POST" id="registerForm">
             {{ form.hidden_tag() }}
 
+            <!-- USERNAME -->
             {{ form.username.label }}
-            {{ form.username(class="input-field") }}
+            {{ form.username(class="input-field", id="username") }}
+            <div id="usernameError" class="error-text"></div>
 
+            <!-- EMAIL -->
             {{ form.email.label }}
-            {{ form.email(class="input-field") }}
+            {{ form.email(class="input-field", id="email") }}
+            <div id="emailError" class="error-text"></div>
 
+            <!-- PASSWORD -->
             {{ form.password.label }}
             {{ form.password(class="input-field") }}
 
+            <!-- CONFIRM PASSWORD -->
             {{ form.confirm_password.label }}
             {{ form.confirm_password(class="input-field") }}
 
@@ -32,5 +63,45 @@
 
     </div>
 </div>
+
+<script>
+const usernameInput = document.getElementById("username");
+const emailInput = document.getElementById("email");
+
+const usernameError = document.getElementById("usernameError");
+const emailError = document.getElementById("emailError");
+
+// ✅ USERNAME VALIDATION (ONLY LETTERS)
+usernameInput.addEventListener("input", () => {
+    const value = usernameInput.value;
+
+    if (!/^[A-Za-z]+$/.test(value)) {
+        usernameError.innerText = "Only letters allowed (no numbers/symbols)";
+        usernameInput.classList.add("input-error");
+        usernameInput.classList.remove("input-success");
+    } else {
+        usernameError.innerText = "";
+        usernameInput.classList.remove("input-error");
+        usernameInput.classList.add("input-success");
+    }
+});
+
+// ✅ EMAIL VALIDATION
+emailInput.addEventListener("input", () => {
+    const value = emailInput.value;
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(value)) {
+        emailError.innerText = "Enter valid email address";
+        emailInput.classList.add("input-error");
+        emailInput.classList.remove("input-success");
+    } else {
+        emailError.innerText = "";
+        emailInput.classList.remove("input-error");
+        emailInput.classList.add("input-success");
+    }
+});
+</script>
 
 {% endblock %}

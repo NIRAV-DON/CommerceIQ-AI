@@ -446,13 +446,10 @@ def cart():
 
 
 
-# -------------------- CHECKOUT --------------------
-from datetime import date, timedelta, datetime
-
 @main.route("/checkout", methods=["GET", "POST"])
 @login_required
 def checkout():
-
+    from datetime import date, timedelta
     cart = session.get("cart", {})
 
     if not cart:
@@ -467,43 +464,39 @@ def checkout():
         if product:
             total_price += product.price * quantity
 
+    # ✅ ALWAYS AVAILABLE (for GET also)
+    available_coupons = Coupon.query.filter_by(
+        user_id=current_user.user_id,
+        is_used=False
+    ).all()
+
     # ---------------- POST REQUEST ----------------
     if request.method == "POST":
 
         shipping_address = request.form.get("shipping_address")
-        coupon_code = request.form.get("coupon_code")
         payment_method = request.form.get("payment_method")
 
         if not shipping_address:
             flash("Shipping address is required!", "danger")
             return redirect(url_for("main.checkout"))
 
-        discount_amount = 0
-        coupon = None  # ✅ FIX
+        # ---------------- AUTO BEST COUPON ----------------
+        best_coupon = None
+        max_discount = 0
 
-        # ---------------- COUPON VALIDATION ----------------
-        if coupon_code:
+        for c in available_coupons:
+            if c.expiry_date and c.expiry_date < datetime.utcnow():
+                continue
 
-            coupon = Coupon.query.filter_by(
-                code=coupon_code,
-                user_id=current_user.user_id,
-                is_used=False
-            ).first()
+            discount = (total_price * c.discount_percent) / 100
 
-            if coupon:
+            if discount > max_discount:
+                max_discount = discount
+                best_coupon = c
 
-                if coupon.expiry_date and coupon.expiry_date < datetime.utcnow():
-                    flash("Coupon expired!", "danger")
-                    return redirect(url_for("main.checkout"))
-
-                discount_amount = (total_price * coupon.discount_percent) / 100
-                total_price -= discount_amount
-
-                flash(f"{coupon.discount_percent}% discount applied!", "success")
-
-            else:
-                flash("Invalid coupon code!", "danger")
-                return redirect(url_for("main.checkout"))
+        if best_coupon:
+            total_price -= max_discount
+            flash(f"Best Coupon Applied: {best_coupon.code} (-₹{int(max_discount)})", "success")
 
         # ---------------- DELIVERY LOGIC ----------------
         base_days = 5
@@ -512,8 +505,7 @@ def checkout():
         if payment_method == "COD":
             base_days += 2
 
-        metro_cities = ["Ahmedabad", "Mumbai", "Delhi", "Bangalore"]
-        if city in metro_cities:
+        if city in ["Ahmedabad", "Mumbai", "Delhi", "Bangalore"]:
             base_days -= 1
 
         estimated_delivery = date.today() + timedelta(days=base_days)
@@ -530,7 +522,7 @@ def checkout():
 
             return redirect(url_for("main.fake_payment"))
 
-        # ---------------- VALIDATE STOCK FIRST ----------------
+        # ---------------- STOCK VALIDATION ----------------
         for product_id, quantity in cart.items():
             product = Product.query.get(int(product_id))
 
@@ -538,28 +530,18 @@ def checkout():
                 flash(f"{product.name} is out of stock!", "danger")
                 return redirect(url_for("main.cart"))
 
-        for product_id, quantity in cart.items():
-                product = Product.query.get(int(product_id))
-
-        if not product:
-            flash("Product not found!", "danger")
-            return redirect(url_for("main.cart"))
-
-        if product.stock_quantity < quantity:
-            flash(f"{product.name} only has {product.stock_quantity} left!", "danger")
-            return redirect(url_for("main.cart"))
         # ---------------- CREATE ORDER ----------------
-        order = Order(
-            user_id=current_user.user_id,
-            total_amount=total_price,
-            status="Pending",
-            shipping_address=shipping_address,
-            payment_method=payment_method,
-            city=city,
-            estimated_delivery=estimated_delivery
-        )
-
         try:
+            order = Order(
+                user_id=current_user.user_id,
+                total_amount=total_price,
+                status="Pending",
+                shipping_address=shipping_address,
+                payment_method=payment_method,
+                city=city,
+                estimated_delivery=estimated_delivery
+            )
+
             db.session.add(order)
             db.session.flush()
 
@@ -577,9 +559,9 @@ def checkout():
 
                 db.session.add(order_item)
 
-            # ✅ coupon update inside try
-            if coupon:
-                coupon.is_used = True
+            # ✅ mark coupon used
+            if best_coupon:
+                best_coupon.is_used = True
 
             db.session.commit()
 
@@ -597,7 +579,8 @@ def checkout():
     # ---------------- GET ----------------
     return render_template(
         "checkout.html",
-        total_price=total_price
+        total_price=total_price,
+        coupons=available_coupons
     )
 
 @main.route("/fake-payment", methods=["GET", "POST"])
@@ -674,6 +657,7 @@ def admin_dashboard():
     total_products = Product.query.count()
     total_orders = Order.query.count()
     total_users = User.query.count()
+    recommended_users = []
 
     total_sales = db.session.query(
         func.sum(Order.total_amount)
@@ -1496,120 +1480,93 @@ def inject_coupon_count():
 @admin_required
 def admin_customer_intelligence():
 
-    import random   
+    import random
     import string
 
     filter_type = request.args.get("type")
 
     customers = User.query.filter_by(role="customer").all()
+    all_orders = Order.query.all()  # ✅ SINGLE QUERY
 
     vip_customers = []
     regular_customers = []
     inactive_customers = []
+    predicted_customers = []
+    churn_risk_customers = []
+    clv_data = []
+    coupon_recommendations = []
 
     last_30_days = datetime.now() - timedelta(days=30)
 
+    # ---------------- MAIN LOOP ----------------
     for customer in customers:
 
-        orders = Order.query.filter_by(user_id=customer.user_id).all()
-        total_spent = sum(order.total_amount for order in orders)
+        # ✅ get all orders of user (no DB hit)
+        user_orders = [o for o in all_orders if o.user_id == customer.user_id]
 
-        last_order = Order.query.filter_by(user_id=customer.user_id) \
-            .order_by(Order.order_date.desc()).first()
+        total_orders = len(user_orders)
+        total_spent = sum(o.total_amount for o in user_orders)
 
-        if total_spent >= 50000:
-            category = "vip"
-            vip_customers.append((customer, total_spent))
+        last_order = sorted(user_orders, key=lambda x: x.order_date, reverse=True)[0] if user_orders else None
 
-        elif not last_order or last_order.order_date < last_30_days:
-            category = "inactive"
+        # ---------------- CATEGORY ----------------
+        if not last_order or last_order.order_date < last_30_days:
             inactive_customers.append((customer, total_spent))
 
+        elif total_spent >= 50000:
+            vip_customers.append((customer, total_spent))
+
         else:
-            category = "regular"
             regular_customers.append((customer, total_spent))
 
-    # Filter logic
-    if filter_type == "vip":
-        display_list = vip_customers
-    elif filter_type == "inactive":
-        display_list = inactive_customers
-    elif filter_type == "regular":
-        display_list = regular_customers
-    else:
-        display_list = None
+        # ---------------- PREDICTION ----------------
+        if total_orders >= 3:
 
-    predicted_customers = []
-
-    for customer in customers:
-
-        user_orders = Order.query.filter_by(user_id=customer.user_id) \
-            .order_by(Order.order_date.asc()).all()
-
-        if len(user_orders) >= 3:
-
-            gaps = []
-            for i in range(1, len(user_orders)):
-                gap = (user_orders[i].order_date - user_orders[i-1].order_date).days
-                gaps.append(gap)
+            gaps = [
+                (user_orders[i].order_date - user_orders[i-1].order_date).days
+                for i in range(1, total_orders)
+            ]
 
             avg_gap = sum(gaps) / len(gaps)
+            days_since_last = (datetime.now() - user_orders[-1].order_date).days
 
-            last_order_date = user_orders[-1].order_date
-            days_since_last_order = (datetime.now() - last_order_date).days
-
-            # Prediction rule
-            if days_since_last_order >= avg_gap * 0.8:
+            if days_since_last >= avg_gap * 0.8:
                 predicted_customers.append({
                     "customer": customer,
                     "avg_gap": round(avg_gap, 1),
-                    "days_since_last_order": days_since_last_order
+                    "days_since_last_order": days_since_last
                 })
-    churn_risk_customers = []
-    clv_data = []
 
-    for customer in customers:
+        # ---------------- CLV ----------------
+        if total_orders > 0:
 
-        user_orders = Order.query.filter_by(user_id=customer.user_id) \
-            .order_by(Order.order_date.asc()).all()
+            avg_order_value = total_spent / total_orders
+            clv = round(avg_order_value * total_orders, 2)
 
-        total_orders = len(user_orders)
+            clv_data.append({
+                "customer": customer,
+                "clv": clv,
+                "total_orders": total_orders
+            })
 
-        if total_orders == 0:
-            continue
+            # ---------------- CHURN ----------------
+            if total_orders >= 2:
 
-        total_spent = sum(order.total_amount for order in user_orders)
-        avg_order_value = total_spent / total_orders
+                gaps = [
+                    (user_orders[i].order_date - user_orders[i-1].order_date).days
+                    for i in range(1, total_orders)
+                ]
 
-        clv = round(avg_order_value * total_orders, 2)
+                avg_gap = sum(gaps) / len(gaps)
+                days_since_last = (datetime.now() - user_orders[-1].order_date).days
 
-        clv_data.append({
-            "customer": customer,
-            "clv": clv,
-            "total_orders": total_orders
-        })
-        
-        # Sort and take top 5 here (NOT in template)
-        clv_data = sorted(clv_data, key=lambda x: x["clv"], reverse=True)[:5]
+                if days_since_last > avg_gap * 2:
+                    churn_risk_customers.append(customer)
 
-        # 🔴 Churn Risk Logic
-        if total_orders >= 2:
+    # ---------------- SORT CLV ----------------
+    clv_data = sorted(clv_data, key=lambda x: x["clv"], reverse=True)[:5]
 
-            gaps = []
-            for i in range(1, total_orders):
-                gap = (user_orders[i].order_date - user_orders[i-1].order_date).days
-                gaps.append(gap)
-
-            avg_gap = sum(gaps) / len(gaps)
-
-            last_order_date = user_orders[-1].order_date
-            days_since_last = (datetime.now() - last_order_date).days
-
-            if days_since_last > avg_gap * 2:
-                churn_risk_customers.append(customer)
-
-    coupon_recommendations = []
-
+    # ---------------- COUPON GENERATION ----------------
     for item in clv_data:
 
         customer = item["customer"]
@@ -1624,21 +1581,50 @@ def admin_customer_intelligence():
         elif clv > 2000:
             coupon_percent = 10
 
+        # 🔥 churn users = max discount
         if customer in churn_risk_customers:
-                coupon_percent = 20
+            coupon_percent = 20
 
-                # 🔥 Generate random coupon code
-                random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-                coupon_code = f"AI{coupon_percent}{random_part}"
+        # 🔥 generate code
+        random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+        coupon_code = f"AI{coupon_percent}{random_part}"
 
-                coupon_recommendations.append({
-                    "customer": customer,
-                    "clv": clv,
-                    "coupon_percent": coupon_percent,
-                    "coupon_code": coupon_code,
-                    "sent": False
-                })
+        # ✅ SAVE TO DB (avoid duplicates)
+        existing = Coupon.query.filter_by(
+            user_id=customer.user_id,
+            is_used=False
+        ).first()
 
+        if not existing:
+            new_coupon = Coupon(
+                code=coupon_code,
+                discount_percent=coupon_percent,
+                user_id=customer.user_id,
+                is_used=False,
+                expiry_date=datetime.now() + timedelta(days=7)
+            )
+            db.session.add(new_coupon)
+
+        coupon_recommendations.append({
+            "customer": customer,
+            "clv": clv,
+            "coupon_percent": coupon_percent,
+            "coupon_code": coupon_code
+        })
+
+    db.session.commit()
+
+    # ---------------- FILTER ----------------
+    if filter_type == "vip":
+        display_list = vip_customers
+    elif filter_type == "inactive":
+        display_list = inactive_customers
+    elif filter_type == "regular":
+        display_list = regular_customers
+    else:
+        display_list = None
+
+    # ---------------- RETURN ----------------
     return render_template(
         "admin_customer_intelligence.html",
         vip_customers=vip_customers,
@@ -1651,30 +1637,33 @@ def admin_customer_intelligence():
         clv_data=clv_data,
         coupon_recommendations=coupon_recommendations
     )
-@main.route("/admin/send-coupon/<int:user_id>/<coupon_code>/<int:discount>")
+@main.route("/admin/send-coupon/<int:user_id>/<int:discount>")
 @login_required
 @admin_required
-def send_coupon(user_id, coupon_code, discount):
+def send_coupon(user_id, discount):
 
     user = User.query.get_or_404(user_id)
 
     expiry = datetime.utcnow() + timedelta(days=7)
 
+    # 🔥 Generate unique coupon
+    unique_code = generate_unique_coupon(discount)
+
     new_coupon = Coupon(
-        code=coupon_code,
+        code=unique_code,
         discount_percent=discount,
         user_id=user.user_id,
         is_sent=True,
+        is_used=False,
         expiry_date=expiry
     )
 
     db.session.add(new_coupon)
     db.session.commit()
 
-    flash(f"Coupon {coupon_code} sent! Valid for 7 days.", "success")
+    flash(f"Coupon {unique_code} sent successfully!", "success")
 
     return redirect(url_for("main.admin_customer_intelligence"))
-
 @main.route("/admin/coupons", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -1751,13 +1740,13 @@ def remove_from_cart(product_id):
 @login_required
 def my_coupons():
     from datetime import datetime
-
+    
     coupons = Coupon.query.filter(
         Coupon.user_id == current_user.user_id,
         Coupon.is_used == False,
         Coupon.expiry_date > datetime.utcnow()
     ).all()
-        
+    print("Coupn:",coupons )
     return render_template(
         "my_coupons.html",
         coupons=coupons

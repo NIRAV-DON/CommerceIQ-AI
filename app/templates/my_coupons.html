@@ -3,22 +3,58 @@
 
 <h2>🎁 My Coupons</h2>
 
-{% if recommended_users %}
-<table style="width:100%; margin-top:20px;">
-    <tr>
+{% if coupons and coupons|length > 0 %}
+<script>
+document.querySelectorAll('.countdown').forEach(el => {
+    let expiry = new Date(el.dataset.expiry)
+
+    function update() {
+        let now = new Date()
+        let diff = expiry - now
+
+        if (diff <= 0) {
+            el.innerHTML = "Expired"
+            return
+        }
+
+        let days = Math.floor(diff / (1000*60*60*24))
+        let hours = Math.floor((diff / (1000*60*60)) % 24)
+
+        el.innerHTML = days + "d " + hours + "h left"
+    }
+
+    update()
+    setInterval(update, 60000)
+})
+</script>
+
+<table style="width:100%; margin-top:20px; border-collapse: collapse;">
+    <tr style="background:#f3f4f6;">
         <th>Code</th>
-        <th>CLV</th>
+        <th>Discount</th>
         <th>Expiry</th>
     </tr>
 
-    {% for user in recommended_users %}
-    <tr>
-        <td>{{ user.coupon }}</td>
-        <td>{{ user.clv }}</td>
-        <td>N/A</td>
+    {% for coupon in coupons %}
+    <tr style="text-align:center; border-bottom:1px solid #ddd;">
+        <td>{{ coupon.code }}</td>
+        <td>{{ coupon.discount_percent }}%</td>
+        <td>
+    <span class="countdown" data-expiry="{{ coupon.expiry_date }}">
+        Loading...
+    </span>
+</td>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+        <div class="alert">{{ message }}</div>
+    {% endfor %}
+{% endwith %}
+
     </tr>
     {% endfor %}
+
 </table>
+
 {% else %}
 <p>No active coupons available.</p>
 {% endif %}

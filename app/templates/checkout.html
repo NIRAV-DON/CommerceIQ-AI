@@ -24,6 +24,16 @@
             <button type="submit" class="modern-btn">
                 Place Order
             </button>
+            <h3>Available Coupons</h3>
+
+<select name="coupon_code">
+    <option value="">Select Coupon</option>
+    {% for coupon in coupons %}
+        <option value="{{ coupon.code }}">
+            {{ coupon.code }} - {{ coupon.discount_percent }}% OFF
+        </option>
+    {% endfor %}
+</select>
 
         </form>
     </div>

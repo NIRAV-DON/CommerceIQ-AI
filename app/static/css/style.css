@@ -1555,3 +1555,15 @@ td {
     margin-top: 10px;
     display: inline-block;
 }
+.alert {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 10px;
+    border-radius: 6px;
+    animation: pop 0.5s ease;
+}
+
+@keyframes pop {
+    from {transform: scale(0.8); opacity:0;}
+    to {transform: scale(1); opacity:1;}
+}
